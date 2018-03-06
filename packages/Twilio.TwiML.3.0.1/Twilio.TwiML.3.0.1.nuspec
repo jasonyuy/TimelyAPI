@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>Twilio.TwiML</id>
+    <version>3.0.1</version>
+    <title>Twilio.TwiML</title>
+    <authors>Twilio</authors>
+    <owners>Twilio</owners>
+    <licenseUrl>https://github.com/twilio/twilio-csharp/blob/master/LICENSE.txt</licenseUrl>
+    <projectUrl>http://github.com/twilio/twilio-csharp</projectUrl>
+    <iconUrl>http://www.twilio.com/packages/company/img/logos_downloadable_round.png</iconUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Twilio TwiML generator. If using ASP.NET MVC, install Twilio.Mvc instead.</description>
+    <summary>Twilio TwiML generator. If using ASP.NET MVC, install Twilio.Mvc instead.</summary>
+    <tags>REST SMS voice telephony phone twilio twiml</tags>
+    <dependencies>
+      <dependency id="Twilio" />
+    </dependencies>
+  </metadata>
+</package>

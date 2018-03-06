@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<users>
+  <user id="1">
+    <name>Jason</name>
+    <unix>yucheng</unix>
+    <phone>+15103961267</phone>
+    <group>admin</group>
+  </user>
+  <user id="2">
+    <name>Sean</name>
+    <unix>delfosss</unix>
+    <phone>+16508223256</phone>
+    <group>cellculture</group>
+  </user>
+  <user id="3">
+    <name>Eric</name>
+    <unix>cheunge2</unix>
+    <phone>+16504914168</phone>
+    <group>purification</group>
+  </user>
+  <user id="4">
+    <name>Shinya</name>
+    <unix>gek</unix>
+    <phone>+16502387516</phone>
+    <group>process</group>
+  </user>
+</users>
