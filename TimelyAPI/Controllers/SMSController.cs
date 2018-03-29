@@ -210,14 +210,6 @@ namespace TimelyAPI.Controllers
                 strResult = "Shhhh " + strUserName + ". Please don't mention that name, he might just pull the plug on everything!";
             }
 
-            //Timely doesn't put up with rudeness
-            if (string.IsNullOrEmpty(strResult) && (strRawMessage.ToUpper().Contains("BITCH") == true || strRawMessage.ToUpper().Contains("FUCK") == true
-                || strRawMessage.ToUpper().Contains("SHIT") == true) || strRawMessage.ToUpper().Contains("CUNT") == true
-                || strRawMessage.ToUpper().Contains("NIGG") == true)
-            {
-                strResult = "Hey " + strUserName + "! There's no need for such vulgar language! Please re-phrase your request in a more civil manner";
-            }
-
             return strResult;
         }
         public string ProcessMessage(string InputString, string strUserUnix)

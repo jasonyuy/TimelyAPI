@@ -47,7 +47,7 @@ namespace TimelyAPI.Models
             //Define Base query
             if (string.IsNullOrEmpty(strLot))
             {
-                string strSQLbase = "select <FIELD> from ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID";
+                string strSQLbase = "select <FIELD> from ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null";
 
                 //Combine all constraints
                 string strConstraints = CCDB.ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, strStation);
@@ -125,7 +125,7 @@ namespace TimelyAPI.Models
             //Define Base query
             if (string.IsNullOrEmpty(strLot))
             {
-                string strSQLbase = "select <FIELD> from ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID";
+                string strSQLbase = "select <FIELD> from ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null";
 
                 //Combine all constraints
                 string strConstraints = CCDB.ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, strStation);

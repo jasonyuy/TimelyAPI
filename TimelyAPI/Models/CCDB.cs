@@ -19,13 +19,13 @@ namespace TimelyAPI.Models
             if (!string.IsNullOrEmpty(strVesselClass)) { strScaleID = ScaleID[strVesselClass.ToUpper()]; };
 
             //Specific Batch Query Example
-            //select * from ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID and SCALE='12KL' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by INOCTIME
+            //select * from ISI.CCBATCHES where SCALEID='12000' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by INOCTIME
 
             //Current Active Batches Example
-            //select * from ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID and HARVESTTIME is null and INOCTIME > (SYSDATE - 30) order by INOCTIME desc
+            //select * from ISI.CCBATCHES where HARVESTTIME is null and INOCTIME > (SYSDATE - 30) order by INOCTIME desc
 
             //Define Base query
-            string strSQLbase = "select <FIELD> from ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID";
+            string strSQLbase = "select <FIELD> from ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null";
 
             //For parameters that could also be search criterias (e.g. Run/Lot/Equipment), check if they're the target parameter, if so, null out the value
             switch (strParameter.ToUpper())
@@ -97,17 +97,17 @@ namespace TimelyAPI.Models
             if (string.IsNullOrEmpty(strModifier)) { strModifier = "CURRENT"; };
 
             //Sample Query
-            //select * from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID and SCALE='12KL' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID
+            //select * from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID and SCALEID='12000' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID
 
             //Define Base query
-            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID";
+            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID";
 
             //Combine all constraints
             string strConstraints = ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, strStation);
             string strConstraintsPP = PrettyPrintConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, strStation);
 
             //Find the most likely batch that matches search criteria
-            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID = ISI.CCFERMS.FERMID" + strConstraints +
+            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
                 " order by INOCTIME desc");
 
             if (!string.IsNullOrEmpty(strBatchID))
@@ -181,11 +181,11 @@ namespace TimelyAPI.Models
 
             //Sample Query
             //Durations in CCDB is measured in hours
-            //select GLUCOSE from (select ABS(DURATION - 200) TIMEDIFF, DURATION, GLUCOSE from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID    
-            //and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID and SCALE='12KL' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID) order by TIMEDIFF
+            //select GLUCOSE from (select ABS(DURATION - 200) TIMEDIFF, DURATION, GLUCOSE from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID    
+            //and SCALEID='12000' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID) order by TIMEDIFF
 
             //Define Base query
-            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID";
+            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID";
 
             //Default scale to 12kL as that'll be 99% of searches
             if (!string.IsNullOrEmpty(strRun) && string.IsNullOrEmpty(strVesselClass) && string.IsNullOrEmpty(strLot)) { strVesselClass = "12KL"; };
@@ -194,7 +194,7 @@ namespace TimelyAPI.Models
             string strConstraints = ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, null);
 
             //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
-            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID = ISI.CCFERMS.FERMID" + strConstraints +
+            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
                 " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null order by INOCTIME desc");
 
             //If proper batch is found, make the calculation
@@ -272,17 +272,17 @@ namespace TimelyAPI.Models
 
             //Sample Query
             //Durations in CCDB is measured in hours
-            //select GLUCOSE from (select ABS(DURATION - 200) TIMEDIFF, DURATION, GLUCOSE from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID    
-            //and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID and SCALE='12KL' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID) order by TIMEDIFF
+            //select GLUCOSE from (select ABS(DURATION - 200) TIMEDIFF, DURATION, GLUCOSE from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID    
+            //and SCALE='12000' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID) order by TIMEDIFF
 
             //Define Base query
-            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID";
+            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID";
 
             //Combine all constraints
             string strConstraints = ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, null);
 
             //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
-            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID = ISI.CCFERMS.FERMID" + strConstraints +
+            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
                 " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null order by INOCTIME desc");
 
             if (!string.IsNullOrEmpty(strBatchID))
@@ -346,11 +346,11 @@ namespace TimelyAPI.Models
 
             //Sample Query
             //Durations in CCDB is measured in hours
-            //select VIABILITY from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID    
-            //and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID and SCALE='12KL' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID
+            //select VIABILITY from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID    
+            //and SCALE='12000' and RUN=162 and PRODUCTID='rhuMAb VEGF G7 v1.2' order by SAMPLEID
 
             //Define Base query
-            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES, ISI.CCFERMS where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID and ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID";
+            string strSQLbase = "select <FIELD> from ISI.CCSAMPLES, ISI.CCBATCHES where ISI.CCSAMPLES.BATCHID=ISI.CCBATCHES.BATCHID";
 
             //Default class to 12kL if not provided with run and product (will be 99%) of searches
             if (!string.IsNullOrEmpty(strProduct) && !string.IsNullOrEmpty(strRun) && string.IsNullOrEmpty(strVesselClass))
@@ -565,11 +565,11 @@ namespace TimelyAPI.Models
         private static Dictionary<string, string> ScaleID =
             new Dictionary<string, string>
             {
-                {"20L","7"},
-                {"80L","3"}, 
-                {"400L","4"}, 
-                {"2KL","5"}, 
-                {"12KL","6"}, 
+                {"20L","20"},
+                {"80L","80"}, 
+                {"400L","400"}, 
+                {"2KL","2000"}, 
+                {"12KL","12000"}, 
             };
     }
 }

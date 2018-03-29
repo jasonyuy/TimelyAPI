@@ -72,7 +72,7 @@ namespace TimelyAPI.Models
 
             //Find the Harvest Lot - use IMS reports
             string strSQLHarvLot = "select BATCH from ISI.IMSREPORTS where AREA='CENTRIFUGE' and START_TIME is not null and RECIPE is not null " +
-                "and START_TIME + 6 / 24 > (select HARVESTTIME - 6 / 24 from ISI.CCBATCHES, ISI.CCFERMS where ISI.CCBATCHES.FERMID=ISI.CCFERMS.FERMID "
+                "and START_TIME + 6 / 24 > (select HARVESTTIME - 6 / 24 from ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null "
                 + strConstraints + " and HARVESTTIME is not null)  order by START_TIME";
             strLot = OracleSQL.SimpleQuery("CCDB", strSQLHarvLot);
 
