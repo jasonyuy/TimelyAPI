@@ -440,7 +440,7 @@ namespace TimelyAPI.Controllers
             }
 
             //Use Regex to find any durations in string
-            string DurationPattern = @"(\d+) (second|minute|hour|day|week)";
+            string DurationPattern = @"(\d+) (second|sec|minute|min|hour|hr|day|week)";
             Match MatchDuration = Regex.Match(strRawMessage, DurationPattern);
             if (MatchDuration.Success)
             {
@@ -839,10 +839,19 @@ namespace TimelyAPI.Controllers
                 case "SECOND":
                     dblValue = Convert.ToDouble(DurationValue);
                     break;
+                case "SEC":
+                    dblValue = Convert.ToDouble(DurationValue);
+                    break;
                 case "MINUTE":
                     dblValue = Convert.ToDouble(DurationValue) * 60;
                     break;
+                case "MIN":
+                    dblValue = Convert.ToDouble(DurationValue) * 60;
+                    break;
                 case "HOUR":
+                    dblValue = Convert.ToDouble(DurationValue) * 3600;
+                    break;
+                case "HR":
                     dblValue = Convert.ToDouble(DurationValue) * 3600;
                     break;
                 case "DAY":

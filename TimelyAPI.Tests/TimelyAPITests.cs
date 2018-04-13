@@ -367,9 +367,9 @@ namespace TimelyAPI.Tests
             //Arrange
             SMSController test = new SMSController();
             //Act
-            string strTestResult = test.ProcessMessage("Sentry, snooze alerts for online pH on T320", "test");
+            string strTestResult = test.ProcessMessage("Sentry, snooze alerts for online pH on T320 for 3 hrs", "test");
             //Assert
-            Assert.AreEqual("Alerts for ONLINE PH on T320 will be snoozed for the next 2 hours", strTestResult);
+            Assert.AreEqual("Alerts for ONLINE PH on T320 will be snoozed for the next 3 hours", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
