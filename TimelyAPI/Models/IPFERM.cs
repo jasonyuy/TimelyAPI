@@ -77,10 +77,10 @@ namespace TimelyAPI.Models
             }
 
             //Build the tag query and query IP21 for the tag, store result in strTagResult
-            string strQueryTagName = "SELECT name from ip_analogdef where name like '" + strEquipmentNumeric + "%' " + IP21.TagAliasDescription[strParameter.ToUpper()];
+            string strQueryTagName = "SELECT name from ip_analogdef where name like '%" + strEquipmentNumeric + "%' " + IP21.TagAliasDescription[strParameter.ToUpper()] + " order by name desc";
             strTagResult = IP21.GenericQuery("IP-FERM", strQueryTagName);
 
-            string strQueryTagUOM = "SELECT ip_eng_units from ip_analogdef where name like '" + strEquipmentNumeric + "%' " + IP21.TagAliasDescription[strParameter.ToUpper()];
+            string strQueryTagUOM = "SELECT ip_eng_units from ip_analogdef where name like '%" + strEquipmentNumeric + "%' " + IP21.TagAliasDescription[strParameter.ToUpper()] + " order by name desc";
             strTagUOM = IP21.GenericQuery("IP-FERM", strQueryTagUOM);
 
             //Build the tag query and query IP21 for the tag, store result in strTagResult

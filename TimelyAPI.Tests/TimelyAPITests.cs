@@ -166,7 +166,19 @@ namespace TimelyAPI.Tests
             Assert.AreEqual("The current GROWTH RATE value for lot 3136230 is 0.61 day-1", strTestResult);
             Console.WriteLine(strTestResult);
         }
-        
+
+        [TestMethod]
+        public void CCDBSampleQuerySampleTimeTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            //Act
+            string strTestResult = test.ProcessMessage("When was the most recent sample for t7350?", "test");
+            //Assert
+            Assert.AreEqual("The current SAMPLE time for vessel T7350 was on 4/30/2018 10:23:00 AM", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
         [TestMethod]
         public void GlucosePredictionValueTest()
         {
@@ -250,6 +262,18 @@ namespace TimelyAPI.Tests
             string strTestResult = test.ProcessMessage("What's the max air sparge for Avastin run 167 12kL?", "test");
             //Assert
             Assert.AreEqual("The max AIR SPARGE value for AVASTIN class 12KL run 167 is 203.613 SLPM", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void IPFERMValueTestB3AMod()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            //Act
+            string strTestResult = test.ProcessMessage("What's the max volume for T250?", "test");
+            //Assert
+            Assert.AreEqual("The max VOLUME value for vessel T250 is 2166.474 L", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -427,7 +451,7 @@ namespace TimelyAPI.Tests
             //Arrange
             SMSController test = new SMSController();
             //Act
-            string strTestResult = test.ProcessMessage("What is the preharv titer for pulmozyme v1.1 run 15", "test");
+            string strTestResult = test.ProcessMessage("Time of Last cell count in t1215", "test");
             //Assert
             //Assert.AreEqual("I can see that you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?", strTestResult);
             Assert.AreEqual("1", "1");

@@ -44,6 +44,9 @@ namespace TimelyAPI.Models
                 case "STATE":
                     strParameterField = "REC_STATE";
                     break;
+                case "DETAIL":
+                    strParameterField = "REC_STATE";
+                    break;
                 case "DESCRIPTION":
                     strParameterField = "REC_SHORT_DESCRIPTION";
                     break;

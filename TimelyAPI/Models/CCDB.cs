@@ -86,7 +86,7 @@ namespace TimelyAPI.Models
             //Pretty print the resul
             return strPrettyPrint.Trim();
         }
-        public static string SampleQuery(string strParameter, string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strStation, string strModifier, double dblDuration)
+        public static string SampleQuery(string strParameter, string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strStation, string strModifier, double dblDuration, string sTimeflag)
         {
             //Initialize variables, default error message
             string strResult = "Sorry! I can't seem to find the sample data you requested, can you refine your request and try again?";
@@ -167,9 +167,18 @@ namespace TimelyAPI.Models
                 }
             }
 
-            //Pretty print the result
-            string strPrettyPrint = "The " + strModifier.ToLower() + " " + strParameter + " value for " + strConstraintsPP + " is " + strResult + " " + parameterUOM[strParameter.ToUpper()];
-            return strPrettyPrint.Trim();
+            if (!string.IsNullOrEmpty(sTimeflag))
+            {
+                string strPrettyPrint = "The " + strModifier.ToLower() + " " + strParameter + " time for " + strConstraintsPP + " was on " + strResult;
+                return strPrettyPrint.Trim();
+            }
+            else
+            {
+                //Pretty print the result
+                string strPrettyPrint = "The " + strModifier.ToLower() + " " + strParameter + " value for " + strConstraintsPP + " is " + strResult + " " + parameterUOM[strParameter.ToUpper()];
+                return strPrettyPrint.Trim();
+            }
+            
         }
         public static string PredictGlucoseQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strModifier, double dblDuration, string strTimeFlag, string strlimitvalue)
         {
@@ -518,6 +527,9 @@ namespace TimelyAPI.Models
                 {"ASGR","SLOPE"},
                 {"GROWTH RATE","SLOPE"},
                 {"IVPCV","IVPCV"},
+                {"IVCD","IVCD"},
+                {"SAMPLE","CAST((FROM_TZ(CAST(SAMPLETIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)"},
+                {"COUNT","CAST((FROM_TZ(CAST(SAMPLETIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)"},
             };
 
         private static Dictionary<string, string> parameterUOM =
@@ -560,6 +572,9 @@ namespace TimelyAPI.Models
                 {"ASGR","day-1"},
                 {"GROWTH RATE","day-1"},
                 {"IVPCV",""},
+                {"IVCD",""},
+                {"SAMPLE",""},
+                {"COUNT",""},
             };
 
         private static Dictionary<string, string> ScaleID =

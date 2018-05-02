@@ -245,14 +245,14 @@ namespace TimelyAPI.Controllers
             //Define the different lookup arrays
             string[] aryCCDBBatchParameters = { "PRODUCT", "PROCESS", "SCALE", "TANK", "VESSEL", "EQUIPMENT", "FERM", "BIOREACTOR", "LOT", "RUN", "START TIME", "END TIME", "DURATION", "THAW TIME", "THAW LINE", "STATION", "GCODE" };
             string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM", 
-                                             "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV" };
+                                             "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
             string[] aryIPFermParameters = { "AIR SPARGE", "O2 SPARGE", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
             string[] aryIPRecParameters = { "PHASE" };
             string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
             string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
             string[] aryLIMSParameters = { "TITER", "ASSAY" };
             string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE" };
-            string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
+            string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
             string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" };
             string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
             string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
@@ -592,7 +592,7 @@ namespace TimelyAPI.Controllers
             //CCDB Calls
             if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
             {
-                strResult = CCDB.SampleQuery(Inputs.CCDB_Sampleparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.modifier, Inputs.durationseconds);
+                strResult = CCDB.SampleQuery(Inputs.CCDB_Sampleparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.modifier, Inputs.durationseconds, Inputs.timeflag);
             }
             if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Batchparameter))
             {
