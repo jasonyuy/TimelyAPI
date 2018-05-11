@@ -246,12 +246,12 @@ namespace TimelyAPI.Controllers
             string[] aryCCDBBatchParameters = { "PRODUCT", "PROCESS", "SCALE", "TANK", "VESSEL", "EQUIPMENT", "FERM", "BIOREACTOR", "LOT", "RUN", "START TIME", "END TIME", "DURATION", "THAW TIME", "THAW LINE", "STATION", "GCODE" };
             string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM", 
                                              "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
-            string[] aryIPFermParameters = { "AIR SPARGE", "O2 SPARGE", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
+            string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
             string[] aryIPRecParameters = { "PHASE" };
             string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
             string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
             string[] aryLIMSParameters = { "TITER", "ASSAY" };
-            string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE" };
+            string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
             string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
             string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" };
             string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
@@ -502,22 +502,22 @@ namespace TimelyAPI.Controllers
             if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains(" PH ") == true
                 && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.MESflag))
             {
-                strResult = "I can see that you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?";
+                strResult = "I understand you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?";
             }
             if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains("DO2") == true
                 && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter))
             {
-                strResult = "I can see that you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?";
+                strResult = "I understand you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?";
             }
             if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.step) && strRawMessage.ToUpper().Contains("TITER") == true)
             {
-                strResult = "I can see that you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)";
+                strResult = "I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)";
             }
             if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
                 string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
                 string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(strResult))
             {
-                strResult = "I can't seem seem to figure out what target parameter you're looking for. Can you try re-phrasing your request with a valid search parameter? (i.e. PCV, temperature, titer)";
+                strResult = "I can't seem to figure out what target parameter you're looking for. Can you try re-phrasing your request with a valid search parameter? (i.e. PCV, temperature, titer)";
             };
 
             //Now that the message is fully parsed, send them out to the models for data retrival

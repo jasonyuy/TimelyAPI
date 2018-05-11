@@ -405,7 +405,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage("Current pH on T320?", "test");
             //Assert
-            Assert.AreEqual("I can see that you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?", strTestResult);
+            Assert.AreEqual("I understand you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -429,7 +429,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage("What is the titer for Avastin?", "test");
             //Assert
-            Assert.AreEqual("I can see that you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)", strTestResult);
+            Assert.AreEqual("I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)", strTestResult);
             Console.WriteLine(strTestResult);
         }
         
@@ -451,7 +451,7 @@ namespace TimelyAPI.Tests
             //Arrange
             SMSController test = new SMSController();
             //Act
-            string strTestResult = test.ProcessMessage("Time of Last cell count in t1215", "test");
+            string strTestResult = test.ProcessMessage("Online DO2 T250", "test");
             //Assert
             //Assert.AreEqual("I can see that you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?", strTestResult);
             Assert.AreEqual("1", "1");
