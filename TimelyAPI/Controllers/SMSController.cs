@@ -89,7 +89,7 @@ namespace TimelyAPI.Controllers
             //Token help "files"
             if (string.IsNullOrEmpty(strResult) && strRawMessage.Length < 20 &&
                 (strRawMessage.ToUpper().Contains("HI") == true
-                || strRawMessage.ToUpper().Contains("YO") == true 
+                || strRawMessage.ToUpper().Contains("YO ") == true 
                 || strRawMessage.ToUpper().Contains("HELLO") == true 
                 || strRawMessage.ToUpper().Contains("HEY") == true
                 || strRawMessage.ToUpper().Contains("WHAT'S UP") == true 

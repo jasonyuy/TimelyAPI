@@ -118,7 +118,7 @@ namespace TimelyAPI.Models
             }
 
             if (!string.IsNullOrEmpty(strEndTimeResult)) { strEndTimeConstraint = "' and ts<=TIMESTAMP'" + strEndTimeResult; }
-            string strQueryIP21 = "SELECT " + strParameterField + " FROM history where name='" + strTagResult + "' and request=4 and ts>=TIMESTAMP'" + strStartTimeResult + strEndTimeConstraint + "'" + strSortOrder + ";";
+            string strQueryIP21 = "SELECT " + strParameterField + " FROM history where name='" + strTagResult + "' and ts>=TIMESTAMP'" + strStartTimeResult + strEndTimeConstraint + "'" + strSortOrder + ";";
             strResult = IP21.GenericQuery("IP-FERM", strQueryIP21);
 
             //Pretty print the result
