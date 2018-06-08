@@ -461,6 +461,32 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
+        public void CannedResponseTestOriginal()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            //Act
+            string strTestResult = test.CannedResponse("Tell me a joke", "Julia");
+            //Assert
+            //Assert.AreEqual("Shhhh Julia. Please don't mention that name, he might just pull the plug on everything!", strTestResult);
+            Assert.AreEqual("Hi Julia. My joke generating module is still in the shop =/", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void CannedResponseTestFaster()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            //Act
+            string strTestResult = test.CannedResponse1("Tell me a joke", "Julia");
+            //Assert
+            //Assert.AreEqual("Shhhh Julia. Please don't mention that name, he might just pull the plug on everything!", strTestResult);
+            Assert.AreEqual("Hi Julia. My joke generating module is still in the shop =/", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
         public void TWRecordAssignedtoMe()
         {
             //Arrange
