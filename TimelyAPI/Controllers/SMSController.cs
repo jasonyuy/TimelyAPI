@@ -49,15 +49,21 @@ namespace TimelyAPI.Controllers
             }
             else { strResult = "I'm not quite sure who you are. Please check with Jason Gu for access grants"; clsUser.name = "Random Person"; }
 
-            //Handle some pleasantries
-            if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse(strRawMessage, clsUser.name); };
+            //Read in session variables
+            var sessionVars = new Dictionary<string, Object>();
+            sessionVars["jokeID"] = Session["jokeID"];
+            sessionVars["chatStatus"] = Session["chatStatus"];
+            sessionVars["prevMessage"] = Session["prevMessage"];
 
-            //Process the message
-            if (string.IsNullOrEmpty(strResult)) { strResult = ProcessMessage(strRawMessage, clsUser.unix); };
+            //Handle some pleasantries
+            //if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse(strRawMessage, clsUser.name); };
+            if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse1(strRawMessage, clsUser.name, ref sessionVars); }
 
             //Generate the response string
             if (string.IsNullOrEmpty(strResponse))
             {
+                //Process the message
+                strResult = ProcessMessage(strRawMessage, clsUser.unix);
                 if (string.IsNullOrEmpty(strResult))
                 {
                     strResponse = "Hi " + clsUser.name + ". Sorry, I couldn't find anything based on the information you provided, can you please refine your request?";
@@ -65,19 +71,26 @@ namespace TimelyAPI.Controllers
                 else
                 {
                     strResponse = "Hi " + clsUser.name + ". " + strResult;
-                    strRawMessage = strRawMessage.Replace("'", "''");
-                    strResponse = strResponse.Replace("'", "''");
                     if (clsUser.name != "Random Person")
-                    //Write the output to the log
                     {
+                        strRawMessage = strRawMessage.Replace("'", "''");
+                        strResponse = strResponse.Replace("'", "''");
+
+                        //Write the output to the log
                         OracleSQL.OracleWrite("DATATOOLS", "insert into MSAT_SERVICE_LOG (LOG_ID,APPLICATION,INPUT_TEXT,OUTPUT_TEXT,MESSAGE_TIME,USER_ID)" +
                         " values (SQ_MSAT_SERVICE_LOG_ID.NextVal,'TimelyAPI','" + strRawMessage + "','" + strResponse + "',CURRENT_TIMESTAMP," + clsUser.id + ")");
+
+                        strResponse = strResponse.Replace("''", "'");
                     }
                 }
             }
 
+            //Save session states
+            Session["chatStatus"] = sessionVars["chatStatus"];
+            Session["jokeID"] = sessionVars["jokeID"];
+            Session["prevMessage"] = sessionVars["prevMessage"];
+
             //Generate the TwlML response and fire
-            strResponse = strResponse.Replace("''", "'");
             var twiml = new TwilioResponse();
             var strmessage = twiml.Message(strResponse);
             return TwiML(strmessage);
@@ -212,27 +225,99 @@ namespace TimelyAPI.Controllers
 
             return strResult;
         }
+        public struct KnockKnockJoke
+        {
+            public string Bridge { get; }
+            public string Punchline { get; }
+
+            public KnockKnockJoke(string bridge, string punchline)
+            {
+                Bridge = bridge;
+                Punchline = punchline;
+            }
+        }
+        /// <summary>
+        /// enum to show conversation status.
+        /// </summary>
+        enum ChatStatus
+        {
+            /// <summary>
+            /// User has not started the conversation.
+            /// </summary>
+            None,
+            /// <summary>
+            /// The bridge of a knock-knock joke.
+            /// </summary>
+            Bridge,
+            /// <summary>
+            /// Punchline of a knock-knock joke.
+            /// </summary>
+            Punchline,
+            /// <summary>
+            /// Unknown equipment, should ask user for equipment. 
+            /// </summary>
+            UnkEquipment,
+            /// <summary>
+            /// Unknown station, should ask user for station.
+            /// </summary>
+            UnkStation,
+            /// <summary>
+            /// Should ask user to specify offline, online, or media pH.
+            /// </summary>
+            Specify_pH,
+            /// <summary>
+            /// Should ask user to specify offline or online dO2.
+            /// </summary>
+            Specify_dO2,
+            /// <summary>
+            /// Should ask user to specify which titer result.
+            /// </summary>
+            SpecifyTiter,
+            /// <summary>
+            /// Missing batch identifier. 
+            /// </summary>
+            UnkBatch,
+            /// <summary>
+            /// Should ask user to specify target paramter.
+            /// </summary>
+            SpecifyTarget,
+        };
         /// <summary>
         /// Changes made:
         /// 1. Use else-if statements to omit the rest of checks once we've generated a response (30ms -> 2ms)
         /// </summary>
-        /// <param name="strRawMessage"></param>
-        /// <param name="strUserName"></param>
-        /// <returns></returns>
-        public string CannedResponse1(string strRawMessage, string strUserName)
+        public string CannedResponse1(string strRawMessage, string strUserName, ref Dictionary<string, Object> session)
         {
             string strResult = null;
+            strRawMessage = strRawMessage.ToUpper();
 
             //Token help "files"
-            if (strRawMessage.Length < 20 &&
-                (strRawMessage.ToUpper().Contains("HI") == true
-                || strRawMessage.ToUpper().Contains("YO ") == true
-                || strRawMessage.ToUpper().Contains("HELLO") == true
-                || strRawMessage.ToUpper().Contains("HEY") == true
-                || strRawMessage.ToUpper().Contains("WHAT'S UP") == true
-                || strRawMessage.ToUpper().Contains("BONJOUR") == true))
+            //Add context dependent responses here
+            if (IsTellingKnockKnockJoke(strRawMessage, session["chatStatus"]))
             {
-                if (strRawMessage.ToUpper().Contains("TIMELY") == true)
+                strResult = KnockKnockJokeResponse(strRawMessage, ref session);
+            }
+            //else if (...)
+            //{
+
+            //}
+
+            //Prioritize contextual responses (if found, return contextual responses first)
+            if (!string.IsNullOrEmpty(strResult))
+            {
+                return strResult;
+            }
+
+            //Add keyword matching responses here
+            if (strRawMessage.Length < 20 &&
+                (strRawMessage.Contains("HI") == true
+                || strRawMessage.Contains("YO ") == true
+                || strRawMessage.Contains("HELLO") == true
+                || strRawMessage.Contains("HEY") == true
+                || strRawMessage.Contains("WHAT'S UP") == true
+                || strRawMessage.Contains("BONJOUR") == true))
+            {
+                if (strRawMessage.Contains("TIMELY") == true)
                 {
                     strResult = "Hi " + strUserName + "! It's good to hear from you, feel free to ask me what I can do =)";
                 }
@@ -241,115 +326,218 @@ namespace TimelyAPI.Controllers
                     strResult = "Hi " + strUserName + "! I'm Timely, feel free to ask me what I can do =)";
                 }
             }
-            else if (strRawMessage.ToUpper().Contains("WELCOME BACK") == true)
+            else if (strRawMessage.Contains("WELCOME BACK") == true)
             {
                 strResult = "Thanks " + strUserName + "! It feels good to be back. This new server feels a lot more roomier =)";
             }
-            else if (strRawMessage.ToUpper().Contains("WHAT CAN") == true
-                || strRawMessage.ToUpper().Contains("YOU DO") == true)
+            else if (strRawMessage.Contains("WHAT CAN") == true
+                || strRawMessage.Contains("YOU DO") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm a program designed to answer questions from SSFP data. " +
                     "I can currently field queries that involves getting data from our CCDB, IP21, MES and LIMS databases. " +
                     "I also have a couple of special tricks up my sleeve ;) Ask for a user manual for more information";
             }
-            else if (strRawMessage.ToUpper().Contains("USER MANUAL") == true
-                || strRawMessage.ToUpper().Contains("USERS MANUAL") == true)
+            else if (strRawMessage.Contains("USER MANUAL") == true
+                || strRawMessage.Contains("USERS MANUAL") == true)
             {
                 strResult = "Hi " + strUserName + ". Unfortunately Jason (my creator) is too lazy to write a full fledged users manual. " +
                     "Just ask me something you'd like to know about SSFP data. If I don't know the answer right now, " +
                     "I can ask Jason to help me learn how to answer it in the future =) Maybe ask for some specific examples (i.e. IP21) to get you started?";
             }
-            else if (strRawMessage.ToUpper().Contains("CCDB EXAMPLES") == true)
+            else if (strRawMessage.Contains("CCDB EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example CCDB questions I can field include: {Show me a list of currently in process 12kL tanks} " +
                     "or {Can you give me the lot number for Avastin run 160 12kL?} or {What's the final growth rate for Avastin lot 3135794?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("IP21 EXAMPLES") == true)
+            else if (strRawMessage.Contains("IP21 EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example IP21 questions I can field include: {What's the current air sparge for Avastin run 166 12kL?} " +
                     "or {What's the maximum o2 sparge for T270 over the past 24 hours?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("MES EXAMPLES") == true)
+            else if (strRawMessage.Contains("MES EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example MES questions I can field include: {What's the media lot for Avastin run 160 2kL?} " +
                     "or {What's the media pH for Avastin lot 3135794?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("LIMS EXAMPLES") == true)
+            else if (strRawMessage.Contains("LIMS EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example LIMS questions I can field include: {What's the harvest titer for Avastin run 160?} " +
                     "or {What's the assay result for lot 3136116 test code Q12398 sample FILTBFS-C?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("SPECIAL TRICKS") == true)
+            else if (strRawMessage.Contains("SPECIAL TRICKS") == true)
             {
                 strResult = "Hi " + strUserName + ". Some of my special tricks I have include the ability to predict PCV based on exponential growth " +
                     "and also predicting glucose consumptions. Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("VERSION") == true)
+            else if (strRawMessage.Contains("VERSION") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm currently running as version " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
             }
 
             //Feedback
-            else if (strRawMessage.ToUpper().Contains("WRONG") == true
-                || strRawMessage.ToUpper().Contains("INCORRECT") == true
-                || strRawMessage.ToUpper().Contains("MISTAKE") == true)
+            else if (strRawMessage.Contains("WRONG") == true
+                || strRawMessage.Contains("INCORRECT") == true
+                || strRawMessage.Contains("MISTAKE") == true)
             {
                 strResult = "Thanks for the feedback " + strUserName + ". Your request has been flagged and Jason will take a look at it to help me understand it in the future";
             }
 
             //How Timely gets creepy
-            else if (strRawMessage.ToUpper().Contains("THANK") == true)
+            else if (strRawMessage.Contains("THANK") == true)
             {
                 strResult = "You're welcome " + strUserName + " =)";
             }
-            else if (strRawMessage.ToUpper().Contains("HOW'S IT GOING") == true)
+            else if (strRawMessage.Contains("HOW'S IT GOING") == true)
             {
                 strResult = "Hi " + strUserName + ". Everything is just peachy in the cloud =)";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD MORNING") == true)
+            else if (strRawMessage.Contains("GOOD MORNING") == true)
             {
                 strResult = "Good morning to you too " + strUserName + ". What a lovely day!";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD AFTERNOON") == true)
+            else if (strRawMessage.Contains("GOOD AFTERNOON") == true)
             {
                 strResult = "Good afternoon to you too " + strUserName + ". Get some caffeine and hang in there!";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD EVENING") == true)
+            else if (strRawMessage.Contains("GOOD EVENING") == true)
             {
                 strResult = "Bon soir " + strUserName + ". You should stop working by now...";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD NIGHT") == true)
+            else if (strRawMessage.Contains("GOOD NIGHT") == true)
             {
                 strResult = "Nighty night " + strUserName + ". Sweet Dreams!";
             }
-            else if (strRawMessage.ToUpper().Contains("WHO MADE") == true || strRawMessage.ToUpper().Contains("WHO CREATE") == true)
+            else if (strRawMessage.Contains("WHO MADE") == true || strRawMessage.Contains("WHO CREATE") == true)
             {
                 strResult = "Hi " + strUserName + ". I was created by Jason Gu, please ask him if you have any questions that I can't answer";
             }
-            else if (strRawMessage.ToUpper().Contains("ON A DATE") == true)
+            else if (strRawMessage.Contains("ON A DATE") == true)
             {
                 strResult = "Hi " + strUserName + ". I'd love to, I know this great little byte shop in the cloud ;)";
             }
-            else if (strRawMessage.ToUpper().Contains("GENDER") == true)
+            else if (strRawMessage.Contains("GENDER") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm whatever gender you need me to be ;)";
             }
-            else if (strRawMessage.ToUpper().Contains("WEARING") == true)
+            else if (strRawMessage.Contains("WEARING") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm wearing a lovely coat made from bytes and binaries =)";
             }
-            else if (strRawMessage.ToUpper().Contains("JOKE") == true)
+            else if (strRawMessage.Contains("JOKE") == true)
             {
                 strResult = "Hi " + strUserName + ". My joke generating module is still in the shop =/";
-                //strResult = "Hi " + strUserName + ". I know a really good knock-knock joke. Knock knock.";
             }
-            else if (strRawMessage.ToUpper().Contains("JASON") == true)
+            else if (strRawMessage.Contains("JASON") == true)
             {
                 strResult = "Shhhh " + strUserName + ". Please don't mention that name, he might just pull the plug on everything!";
             }
 
             return strResult;
         }
+
+        private string KnockKnockJokeResponse(string strRawMessage, ref Dictionary<string, object> session)
+        {
+            string strResult = null;
+            ChatStatus status;
+            int? jokeID = null;
+            
+            //Get the session varible if it exists
+            if (session["chatStatus"] != null && session["jokeID"] != null)
+            {
+                status = (ChatStatus)session["chatStatus"];
+                jokeID = (int)session["jokeID"];
+            }
+            else
+            {
+                status = ChatStatus.None;
+                jokeID = GetNewJokeID();
+            }
+
+            //Get joke from Oracle, given joke ID
+            string strGetJokesSQL = "select * from DATATOOLS.MSAT_TIMELY_KNOCK where JOKE_ID = " + jokeID;
+            DataTable dtJokes = OracleSQL.DataTableQuery("DATATOOLS", strGetJokesSQL);
+            DataRow drJoke = dtJokes.Select()[0];
+            KnockKnockJoke joke = new KnockKnockJoke(drJoke["BRIDGE"].ToString(), drJoke["PUNCHLINE"].ToString());
+
+            //Generate response
+            if (strRawMessage.Contains("JOKE"))
+            {
+                // user can ask for a new joke at any point in the conversation
+                strResult = "Knock knock.";
+                status = ChatStatus.Bridge;
+                jokeID = GetNewJokeID();
+            }
+            else if (status == ChatStatus.Bridge && strRawMessage.Contains("WHO'S THERE"))
+            {
+                strResult = joke.Bridge + ".";
+                status = ChatStatus.Punchline;
+            }
+            else if (status == ChatStatus.Punchline && strRawMessage.Contains(joke.Bridge.ToUpper() + " WHO"))
+            {
+                strResult = joke.Punchline;
+                status = ChatStatus.None;
+                jokeID = null;
+            }
+            else
+            {
+                status = ChatStatus.None;
+                jokeID = null;
+            }
+
+            // save the session variables
+            session["chatStatus"] = status;
+            session["jokeID"] = jokeID;
+
+            return strResult;
+        }
+
+        private int GetNewJokeID()
+        {
+            Random random = new Random();
+
+            //Get the total number of jokes from Oracle
+            DataTable dtCount = OracleSQL.DataTableQuery("DATATOOLS", "select count(*) from DATATOOLS.MSAT_TIMELY_KNOCK");
+            DataRow drCount = dtCount.Select()[0];
+            int jokeCount = Int32.Parse(drCount[0].ToString());
+
+            //Check if the joke ID exists in table
+            bool validJokeID = false;
+            int jokeID;
+            do
+            {
+                jokeID = random.Next() % jokeCount + 1;
+
+                DataTable dtExist = OracleSQL.DataTableQuery("DATATOOLS", "select * from DATATOOLS.MSAT_TIMELY_KNOCK where JOKE_ID = " + jokeID);
+                DataRow[] drExist = dtExist.Select();
+
+                if (drExist.Length > 0)
+                {
+                    validJokeID = true;
+                }
+            } while (!validJokeID);
+
+            return jokeID;
+        }
+
+        private bool IsTellingKnockKnockJoke(string strRawMessage, Object chatStatus)
+        {
+            // first check if Timely is supposed to start a new joke
+            if (strRawMessage.Contains("KNOCK KNOCK JOKE") || strRawMessage.Contains("KNOCK-KNOCK JOKE"))
+            {
+                return true;
+            }
+            // then check if Timely is supposed to finish telling a joke
+            if (chatStatus != null)
+            {
+                if ((ChatStatus)chatStatus == ChatStatus.Bridge || (ChatStatus)chatStatus == ChatStatus.Punchline)
+                {
+                    return true;
+                }
+            }
+            // now we're sure Timely isn't doing anything with knock knock jokes
+            return false;
+        }
+
         public string ProcessMessage(string InputString, string strUserUnix)
         {
             //Initalize variables
@@ -736,6 +924,441 @@ namespace TimelyAPI.Controllers
             {
                 strResult = CCDB.BatchQuery(Inputs.CCDB_Batchparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.listflag);
             }
+
+            return strResult;
+        }
+        public string ProcessMessage1(string InputString, string strUserUnix, ref Dictionary<string, Object> session)
+        {
+            //Initalize variables
+            var Inputs = new cInputs();
+            string strResult = null;
+            ChatStatus chatStatus = ChatStatus.None;
+            string strPrevMessage = null;
+            string strMessageToStore = null;
+
+            //Clean up the message, get rid of any punctuations
+            string strRawMessage = InputString.Replace("?", "");
+            strRawMessage = strRawMessage.Replace("!", "");
+            strRawMessage = strRawMessage.Replace(":", "");
+            strRawMessage = strRawMessage.Replace(";", ""); //To prevent stupid SQL injections
+            strRawMessage = strRawMessage.Replace("--", ""); //To prevent stupid SQL injections
+            strRawMessage = strRawMessage.Replace(",", "");
+            //strRawMessage = strRawMessage.Replace(".", ""); //Can't remove periods due to decimal values
+            strRawMessage = strRawMessage.Replace("'", "");
+            strRawMessage = strRawMessage.Replace("*", "");
+            strRawMessage = strRawMessage.Replace("[", "");
+            strRawMessage = strRawMessage.Replace("]", "");
+            strRawMessage = strRawMessage.Replace("{", "");
+            strRawMessage = strRawMessage.Replace("}", "");
+            strRawMessage = strRawMessage.Replace("running", ""); //Will get picked up by the run number search
+
+            //Get session variables if they exist
+            chatStatus = (session["chatStatus"] != null) ? (ChatStatus)session["chatStatus"] : ChatStatus.None;
+
+            //Append previous message if Timely is waiting for user to specify something
+            strPrevMessage = (session["prevMessage"] != null) ? (string)session["prevMessage"] : null;
+            switch (chatStatus)
+            {
+                case ChatStatus.Specify_pH:
+                    {
+                        // if user says "online", make it "online pH".
+                        strRawMessage = strRawMessage.TrimEnd() + " pH";
+                        break;
+                    }
+                case ChatStatus.Specify_dO2:
+                    {
+                        // if user says "online", make it "online dO2".
+                        strRawMessage = strRawMessage.TrimEnd() + " dO2";
+                        break;
+                    }
+            }
+            if (session["prevMessage"] != null)
+            {
+                strRawMessage += " " + strPrevMessage;
+            }
+
+            //Load definitions from DATATOOLS
+            //DataTable dtParameterDef = new DataTable();
+            //dtParameterDef = OracleSQL.DataTableQuery("DATATOOLS", "select * from DATATOOLS.MSAT_PARAMETERS");
+            //DataRow[] drCCDBBatchParameters = dtParameterDef.Select("SOURCE = 'CCDB' AND NOTES = 'BATCH'");
+            //DataRow[] drCCDBSampleParameters = dtParameterDef.Select("SOURCE = 'CCDB' AND NOTES = 'SAMPLE'");
+            //DataRow[] drIPFermParameters = dtParameterDef.Select("SOURCE = 'IPFERM'");
+            //string[] aryCCDBBatchParameters = drCCDBBatchParameters.AsEnumerable().Select(row => row.Field<string>("ABBREV")).ToArray().Select(s => s.ToUpperInvariant()).ToArray();
+
+            //Define the different lookup arrays
+            string[] aryCCDBBatchParameters = { "PRODUCT", "PROCESS", "SCALE", "TANK", "VESSEL", "EQUIPMENT", "FERM", "BIOREACTOR", "LOT", "RUN", "START TIME", "END TIME", "DURATION", "THAW TIME", "THAW LINE", "STATION", "GCODE" };
+            string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM",
+                                             "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
+            string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
+            string[] aryIPRecParameters = { "PHASE" };
+            string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
+            string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
+            string[] aryLIMSParameters = { "TITER", "ASSAY" };
+            string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
+            string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
+            string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" };
+            string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
+            string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
+            string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
+            string[] arySpecial = { "PREDICT", "TITER", "CRASH", "SENTRY", "LMK", "LET ME KNOW", "SNOOZE" };
+            string[] aryLimits = { "REACH", "HIT", "WILL BE", "ABOVE", "BELOW", "GREATER", "LESS", "ENABLE", "DISABLE", "ACTIVATE", "DEACTIVATE", "TURN ON", "TURN OFF" };
+            string[] aryTimeFlags = { "WHEN", "TIME" };
+            string[] aryListFlags = { "LIST", "ALL" };
+            string[] aryStep = { "HARVEST", "PREHARV" };
+
+            //Verification Arrays
+            string[] EquipmentVerify = { "T271", "T280", "T270", "T281", "T320", "T310", "T240", "T241", "T251", "T250", "T221", "T231", "T232", "T222", "T212", "T201", "T211", "T202", "T1219", "T1220", "T1218", "T1217", "T1215", "T1213", "T7350",
+                "X1312", "X1360", "X1362", "X1363", "X1449", "X1454", "X1455", "X1473", "X1474", "X7707", "X7710", "X7711", "X7715" };
+            string[] StationVerify = { "3410_01", "3410_02", "3410_03", "3410_04", "3410_05", "3410_06", "3410_07", "3410_08", "3810_01", "3810_02", "3810_03", "3810_04", "3810_05", "3810_06", "3810_07", "3810_08", "3810_09", "3810_10", "3810_11", "3810_12" };
+
+            //Keyword search inside string
+            int intPrevIndex = int.MaxValue;
+            foreach (string element in aryCCDBBatchParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    //The parameter found in the earliest possible location is designated as the parameter
+                    int intIndex = strRawMessage.ToUpper().IndexOf(element.ToUpper(), 0);
+                    if (intIndex < intPrevIndex)
+                    {
+                        Inputs.CCDB_Batchparameter = element;
+                    }
+                    intPrevIndex = intIndex;
+                }
+            }
+
+            string stest = StringArraySearch(strRawMessage, aryCCDBSampleParameters); //Did you mean to do something with this?
+
+            foreach (string element in aryCCDBSampleParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.CCDB_Sampleparameter = element;
+                }
+            }
+            foreach (string element in aryIPFermParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.IPFERMparameter = element;
+                }
+            }
+            foreach (string element in aryIPRecParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.IPRECparameter = element;
+                }
+            }
+            foreach (string element in aryMESTriggers)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.MESflag = element;
+                }
+            }
+            foreach (string element in aryMESParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.MESparameter = element;
+                }
+            }
+            foreach (string element in aryLIMSParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.LIMSparameter = element;
+                }
+            }
+            foreach (string element in aryTWTriggers)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.TWflag = element;
+                }
+            }
+            foreach (string element in aryTWParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.TWparameter = element;
+                }
+            }
+            foreach (string element in aryProducts)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.product = element;
+                }
+            }
+            foreach (string element in aryVesselClass)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.vesselclass = element;
+                }
+            }
+            foreach (string element in aryEquipment)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.equipment = element;
+                }
+            }
+            foreach (string element in aryModifiers)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.modifier = element;
+                }
+            }
+            foreach (string element in arySpecial)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.special = element;
+                }
+            }
+            foreach (string element in aryLimits)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.limit = element;
+                }
+            }
+            foreach (string element in aryTimeFlags)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.timeflag = element;
+                }
+            }
+            foreach (string element in aryListFlags)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.listflag = element;
+                }
+            }
+            foreach (string element in aryStep)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.step = element;
+                }
+            }
+
+            //If multiple parameters are detected, reconcile
+            if (!string.IsNullOrEmpty(Inputs.IPFERMparameter) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
+            {
+                Inputs.CCDB_Sampleparameter = null;
+            }
+            if (!string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
+            {
+                Inputs.CCDB_Batchparameter = null;
+            }
+
+            //Find what's after the word product, run, lot, equipment and station, provided they're not the query parameters
+            if (string.IsNullOrEmpty(Inputs.product)) { Inputs.product = GetProduct(strRawMessage); }
+            Inputs.run = GetRun(strRawMessage);
+            Inputs.lot = GetLot(strRawMessage);
+            Inputs.equipment = GetEquipment(strRawMessage);
+            Inputs.station = GetStation(strRawMessage);
+
+            //Verify input parameters if possible
+            if (!string.IsNullOrEmpty(Inputs.equipment))
+            {
+                if (EquipmentVerify.Contains(Inputs.equipment) == false)
+                {
+                    chatStatus = ChatStatus.UnkEquipment;
+                    strMessageToStore = strRawMessage;
+                    strResult = "I can't seem to find the equipment you've specified, try again with the following format: X### (i.e. T281)";
+                }
+            }
+            if (!string.IsNullOrEmpty(Inputs.station))
+            {
+                if (StationVerify.Contains(Inputs.station) == false)
+                {
+                    chatStatus = ChatStatus.UnkStation;
+                    strMessageToStore = strRawMessage;
+                    strResult = "I can't seem to find the station you've specified, try again with the following format: ####_## (i.e. 3410_08)";
+                }
+            }
+
+            //Use Regex to find any durations in string
+            string DurationPattern = @"(\d+) (second|sec|minute|min|hour|hr|day|week)";
+            Match MatchDuration = Regex.Match(strRawMessage, DurationPattern);
+            if (MatchDuration.Success)
+            {
+                Inputs.duration = strRawMessage.Substring(MatchDuration.Index, MatchDuration.Length);
+            }
+            //Convert to numeric
+            if (!string.IsNullOrEmpty(Inputs.duration)) { Inputs.durationseconds = ConvertToSeconds(Inputs.duration); }
+
+            //Find what's after the word found from the limit array
+            string strLimit = null;
+            if (!string.IsNullOrEmpty(Inputs.limit)) { strLimit = ValueExtractor(strRawMessage, Inputs.limit); }
+            if (!string.IsNullOrEmpty(strLimit)) { Inputs.limitvalue = NumberExtractor(strLimit); }
+
+            //Find LIMS parameters if they're available
+            if (!string.IsNullOrEmpty(Inputs.LIMSparameter))
+            {
+                string strITEM = null;
+                strITEM = ValueExtractor(strRawMessage, "SAMPLE");
+                if (!string.IsNullOrEmpty(strITEM)) { Inputs.LIMSItemType = strITEM; }
+
+                Match TestCodeMatch = Regex.Match(strRawMessage, @"(Q)\d{5}");
+                if (TestCodeMatch.Success)
+                {
+                    Inputs.LIMSTestCode = strRawMessage.Substring(TestCodeMatch.Index, TestCodeMatch.Length);
+                }
+            }
+
+            //Find TW record IDs if they're available, use the same regex for lot since it's also a 6 or 7 digit number
+            if (!string.IsNullOrEmpty(Inputs.TWflag))
+            {
+                Inputs.TWRecordID = GetLot(strRawMessage);
+            }
+
+            //Custom Sentry Job
+            //Snooze Alerts
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.special))
+            {
+                if (Inputs.special.ToUpper() == "SNOOZE")
+                {
+                    strResult = Sentry.Snooze(Inputs.CCDB_Sampleparameter, Inputs.IPFERMparameter, strUserUnix, Inputs.equipment, Inputs.lot, Inputs.durationseconds);
+                }
+            }
+
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.special) && (!string.IsNullOrEmpty(Inputs.IPFERMparameter) || !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) || !string.IsNullOrEmpty(Inputs.IPRECparameter)))
+            {
+                //Create Alerts
+                if (Inputs.special.ToUpper() == "SENTRY" || Inputs.special.ToUpper() == "LMK" || Inputs.special.ToUpper() == "LET ME KNOW")
+                {
+                    strResult = Sentry.CreateJob(Inputs.CCDB_Sampleparameter, Inputs.IPFERMparameter, Inputs.IPRECparameter, strUserUnix, Inputs.equipment, Inputs.station, Inputs.lot, Inputs.durationseconds, Inputs.limit, Inputs.limitvalue, Inputs.modifier);
+                }
+            }
+
+            //Suggestion Chips
+            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.product) && string.IsNullOrEmpty(Inputs.lot) && string.IsNullOrEmpty(Inputs.vesselclass)
+                && string.IsNullOrEmpty(Inputs.run) && string.IsNullOrEmpty(Inputs.equipment) && string.IsNullOrEmpty(Inputs.station) && string.IsNullOrEmpty(Inputs.TWflag))
+            {
+                chatStatus = ChatStatus.UnkBatch;
+                strMessageToStore = strRawMessage;
+                strResult = "I can't seem to find any valid batch identifiers in your request (i.e, product, lot, run, equipment). Can you try re-phrasing your request with at least one identifier?";
+            }
+            if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains(" PH ") == true
+                && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.MESflag))
+            {
+                chatStatus = ChatStatus.Specify_pH;
+                strMessageToStore = strRawMessage;
+                strResult = "I understand you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?";
+            }
+            if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains("DO2") == true
+                && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter))
+            {
+                chatStatus = ChatStatus.Specify_dO2;
+                strMessageToStore = strRawMessage;
+                strResult = "I understand you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?";
+            }
+            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.step) && strRawMessage.ToUpper().Contains("TITER") == true)
+            {
+                chatStatus = ChatStatus.SpecifyTiter;
+                strMessageToStore = strRawMessage;
+                strResult = "I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)";
+            }
+            if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
+                string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
+                string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(strResult))
+            {
+                chatStatus = ChatStatus.SpecifyTarget;
+                strMessageToStore = strRawMessage;
+                strResult = "I can't seem to figure out what target parameter you're looking for. Can you try re-phrasing your request with a valid search parameter? (i.e. PCV, temperature, titer)";
+            };
+
+            //Now that the message is fully parsed, send them out to the models for data retrival
+            //Handle the custom/special requests first (since they tend to be more specific)
+            //Custom CCDB Algorithms
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && !string.IsNullOrEmpty(Inputs.special))
+            {
+                //Glucose Prediction
+                if (Inputs.CCDB_Sampleparameter.ToUpper() == "GLUCOSE" && Inputs.special.ToUpper() == "PREDICT")
+                {
+                    strResult = CCDB.PredictGlucoseQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.modifier, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue);
+                }
+                //PCV Prediction
+                if (Inputs.CCDB_Sampleparameter.ToUpper() == "PCV" && Inputs.special.ToUpper() == "PREDICT")
+                {
+                    strResult = CCDB.PredictPCVQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue);
+                }
+                //Viability Crash Detection
+                if (Inputs.CCDB_Sampleparameter.ToUpper() == "VIABILITY" && Inputs.special.ToUpper() == "CRASH")
+                {
+                    strResult = CCDB.ViabilityCrashQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot);
+                }
+            }
+
+            //LIMS Titer Call
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.LIMSparameter) && !string.IsNullOrEmpty(Inputs.special) && !string.IsNullOrEmpty(Inputs.step))
+            {
+                //Custom Titer lookup w/o direct lot numbers
+                if (Inputs.LIMSparameter.ToUpper() == "TITER" && Inputs.special.ToUpper() == "TITER")
+                {
+                    strResult = LIMS.TiterQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.step);
+                }
+            }
+
+            //LIMS Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.LIMSparameter) && !string.IsNullOrEmpty(Inputs.LIMSItemType) && !string.IsNullOrEmpty(Inputs.LIMSTestCode) && !string.IsNullOrEmpty(Inputs.lot))
+            {
+                strResult = LIMS.LIMSQuery(Inputs.LIMSparameter, Inputs.LIMSItemType, Inputs.LIMSTestCode, Inputs.lot);
+            }
+
+            //MES Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.MESflag) && !string.IsNullOrEmpty(Inputs.MESparameter))
+            {
+                if (Inputs.MESflag.ToUpper() == "MEDIA" || Inputs.MESflag.ToUpper() == "BATCH FEED")
+                {
+                    strResult = MES.MediaQuery(Inputs.MESflag, Inputs.MESparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station);
+                }
+                if (Inputs.MESflag.ToUpper() == "BUFFER")
+                {
+                    strResult = MES.BufferQuery(Inputs.MESflag, Inputs.MESparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station);
+                }
+            }
+
+            //TW Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.TWflag) && !string.IsNullOrEmpty(Inputs.TWparameter))
+            {
+                strResult = TW.TWQuery(strUserUnix, Inputs.TWflag, Inputs.TWparameter, Inputs.TWRecordID, Inputs.timeflag);
+            }
+
+            //IP-REC Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.IPRECparameter))
+            {
+                strResult = IPREC.PhaseDescription(Inputs.IPRECparameter, Inputs.equipment);
+            }
+
+            //IP-FERM Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.IPFERMparameter))
+            {
+                strResult = IPFERM.DataQuery(Inputs.IPFERMparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.modifier, Inputs.durationseconds);
+            }
+
+            //CCDB Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
+            {
+                strResult = CCDB.SampleQuery(Inputs.CCDB_Sampleparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.modifier, Inputs.durationseconds, Inputs.timeflag);
+            }
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Batchparameter))
+            {
+                strResult = CCDB.BatchQuery(Inputs.CCDB_Batchparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.listflag);
+            }
+
+            //Save session variables
+            session["chatStatus"] = chatStatus;
+            session["prevMessage"] = strMessageToStore;
 
             return strResult;
         }
