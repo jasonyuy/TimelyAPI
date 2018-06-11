@@ -49,8 +49,14 @@ namespace TimelyAPI.Controllers
             }
             else { strResult = "I'm not quite sure who you are. Please check with Jason Gu for access grants"; clsUser.name = "Random Person"; }
 
+            //Read in session variables
+            var sessionVars = new Dictionary<string, Object>();
+            sessionVars["jokeID"] = Session["jokeID"];
+            sessionVars["chatStatus"] = Session["chatStatus"];
+
             //Handle some pleasantries
-            if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse(strRawMessage, clsUser.name); };
+            //if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse(strRawMessage, clsUser.name); };
+            if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse1(strRawMessage, clsUser.name, ref sessionVars); };
 
             //Process the message
             if (string.IsNullOrEmpty(strResult)) { strResult = ProcessMessage(strRawMessage, clsUser.unix); };
@@ -75,6 +81,10 @@ namespace TimelyAPI.Controllers
                     }
                 }
             }
+
+            //Save session states
+            Session["chatStatus"] = sessionVars["chatStatus"];
+            Session["jokeID"] = sessionVars["jokeID"];
 
             //Generate the TwlML response and fire
             strResponse = strResponse.Replace("''", "'");
@@ -212,19 +222,51 @@ namespace TimelyAPI.Controllers
 
             return strResult;
         }
+        public struct KnockKnockJoke
+        {
+            public string Person { get; }
+            public string Answer { get; }
+
+            public KnockKnockJoke(string person, string answer)
+            {
+                Person = person;
+                Answer = answer;
+            }
+        }
+        /// <summary>
+        /// enum to show conversation status.
+        /// </summary>
+        enum ChatStatus
+        {
+            /// <summary>
+            /// User has not started the conversation.
+            /// </summary>
+            NONE,
+            /// <summary>
+            /// User has asked who's there.
+            /// </summary>
+            KKJOKE_PERSON,
+            /// <summary>
+            /// User has asked {person} who.
+            /// </summary>
+            KKJOKE_ANSWER
+        };
         /// <summary>
         /// Changes made:
         /// 1. Use else-if statements to omit the rest of checks once we've generated a response (30ms -> 2ms)
         /// </summary>
-        /// <param name="strRawMessage"></param>
-        /// <param name="strUserName"></param>
-        /// <returns></returns>
-        public string CannedResponse1(string strRawMessage, string strUserName)
+        public string CannedResponse1(string strRawMessage, string strUserName, ref Dictionary<string, Object> session)
         {
             string strResult = null;
+            strRawMessage = strRawMessage.ToUpper();
+            
+            if (IsTellingKnockKnockJoke(strRawMessage, session["chatStatus"]))
+            {
+                strResult = KnockKnockJokeResponse(strRawMessage, ref session);
+            }
 
             //Token help "files"
-            if (strRawMessage.Length < 20 &&
+            else if (strRawMessage.Length < 20 &&
                 (strRawMessage.ToUpper().Contains("HI") == true
                 || strRawMessage.ToUpper().Contains("YO ") == true
                 || strRawMessage.ToUpper().Contains("HELLO") == true
@@ -350,6 +392,112 @@ namespace TimelyAPI.Controllers
 
             return strResult;
         }
+
+        private string KnockKnockJokeResponse(string strRawMessage, ref Dictionary<string, object> session)
+        {
+            // pool of knock knock jokes (will be in Oracle later)
+            Dictionary<int, KnockKnockJoke> jokes = new Dictionary<int, KnockKnockJoke>()
+            {
+                {0, new KnockKnockJoke("Dozen", "Dozen anybody want to let me in?")},
+                {1, new KnockKnockJoke("Robin", "Robin you—hand over the cash!")},
+                {2, new KnockKnockJoke("Howl", "Howl you know if you don't open the door?")},
+                {3, new KnockKnockJoke("Cash", "No thanks, I prefer peanuts.")},
+                {4, new KnockKnockJoke("Art", "R2-D2, of course.")},
+                {5, new KnockKnockJoke("Kanga", "Actually, it's kangaroo.")},
+                {6, new KnockKnockJoke("Déja", "Knock! Knock!")},
+                {7, new KnockKnockJoke("No one", "🤐 \u0001F910")},
+                {8, new KnockKnockJoke("An extraterrestrial", "Wait–how many extraterrestrials do you know?")},
+                {9, new KnockKnockJoke("Spell", "W-H-O")},
+                {10, new KnockKnockJoke("Two knee", "Tunee fish!")},
+                {11, new KnockKnockJoke("Loaf", "I don't just like bread, I loaf it.")},
+                {12, new KnockKnockJoke("Tank", "You’re welcome.")},
+                {13, new KnockKnockJoke("Mustache", "I mustache you a question, but I’ll shave it for later.")},
+                {14, new KnockKnockJoke("Doctor", "He's on television.")},
+                {15, new KnockKnockJoke("Yah", "No, I prefer google.")},
+                {16, new KnockKnockJoke("Wendy", "Wendy bell works again I won’t have to knock anymore.")},
+                {17, new KnockKnockJoke("Luke", "Luke through the keyhole and you’ll see!")},
+                {18, new KnockKnockJoke("Mary", "Mary Christmas!")},
+                {19, new KnockKnockJoke("Wanda", "Wanda where I put my car keys.")},
+            };
+            
+            Random random = new Random();
+
+            string strResult = null;
+            ChatStatus status;
+            int jokeID;
+
+            // get the session varible if it exists
+            if (session["chatStatus"] != null && session["jokeID"] != null)
+            {
+                status = (ChatStatus)session["chatStatus"];
+                jokeID = (int)session["jokeID"];
+            }
+            else
+            {
+                status = ChatStatus.NONE;
+                jokeID = random.Next() % jokes.Count;
+            }
+
+            // generate response
+            if (strRawMessage.Contains("JOKE"))
+            {
+                // user can ask for a new joke at any point in the conversation
+                strResult = "Knock knock.";
+                status = ChatStatus.KKJOKE_PERSON;
+                jokeID = random.Next() % 20;
+            }
+            else if (status == ChatStatus.KKJOKE_PERSON)
+            {
+                if (strRawMessage.Contains("WHO'S THERE"))
+                {
+                    strResult = jokes[jokeID].Person + ".";
+                    status = ChatStatus.KKJOKE_ANSWER;
+                }
+            }
+            else if (status == ChatStatus.KKJOKE_ANSWER)
+            {
+                if (strRawMessage.Contains(jokes[jokeID].Person.ToUpper() + " WHO"))
+                {
+                    strResult = jokes[jokeID].Answer;
+                    session["chatStatus"] = ChatStatus.NONE;
+                    session["jokeID"] = null;
+                    return strResult;
+                }
+            }
+            else
+            {
+                strResult = "I don't understand what you said, but I know some great knock-knock jokes.";
+                session["chatStatus"] = ChatStatus.NONE;
+                session["jokeID"] = null;
+                return strResult;
+            }
+
+            // save the session variables
+            session["chatStatus"] = status;
+            session["jokeID"] = jokeID;
+
+            return strResult;
+        }
+
+        private bool IsTellingKnockKnockJoke(string strRawMessage, Object chatStatus)
+        {
+            // first check if Timely is supposed to start a new joke
+            if (strRawMessage.Contains("KNOCK KNOCK JOKE") || strRawMessage.Contains("KNOCK-KNOCK JOKE"))
+            {
+                return true;
+            }
+            // then check if Timely is supposed to finish telling a joke
+            if (chatStatus != null)
+            {
+                if ((ChatStatus)chatStatus == ChatStatus.KKJOKE_PERSON || (ChatStatus)chatStatus == ChatStatus.KKJOKE_ANSWER)
+                {
+                    return true;
+                }
+            }
+            // now we're sure Timely isn't doing anything with knock knock jokes
+            return false;
+        }
+
         public string ProcessMessage(string InputString, string strUserUnix)
         {
             //Initalize variables

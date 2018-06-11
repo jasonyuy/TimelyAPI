@@ -478,12 +478,55 @@ namespace TimelyAPI.Tests
         {
             //Arrange
             SMSController test = new SMSController();
+            var session = new Dictionary<string, Object>();
             //Act
-            string strTestResult = test.CannedResponse1("Tell me a joke", "Julia");
+            string strTestResult = test.CannedResponse1("Tell me a joke", "Julia", ref session);
             //Assert
             //Assert.AreEqual("Shhhh Julia. Please don't mention that name, he might just pull the plug on everything!", strTestResult);
             Assert.AreEqual("Hi Julia. My joke generating module is still in the shop =/", strTestResult);
             Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void NormalKnockKnockJokeTest()
+        {
+            // Arrange
+            SMSController test = new SMSController();
+            var session = new Dictionary<string, Object>();
+            session["jokeID"] = 9;
+            session["chatStatus"] = 0;
+            // Act
+            string actual = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
+            session["jokeID"] = 9;
+            string actual1 = test.CannedResponse1("Who's there?", "Julia", ref session);
+            string actual2 = test.CannedResponse1("Spell who?", "Julia", ref session);
+            // Assert
+            Assert.AreEqual("Knock knock.", actual);
+            Assert.AreEqual("Spell.", actual1);
+            Assert.AreEqual("W-H-O", actual2);
+        }
+
+        // User should be able to ask for a new joke at any point in the conversation
+        // Test may fail if Random happens to generate the same random number twice in a row
+        [TestMethod]
+        public void StartNewKnockKnockJokeTest()
+        {
+            // Arrange
+            SMSController test = new SMSController();
+            var session = new Dictionary<string, Object>();
+            session["jokeID"] = 9;
+            session["chatStatus"] = 0;
+            // Act
+            string actual = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
+            session["jokeID"] = 9;
+            string actual1 = test.CannedResponse1("Who's there?", "Julia", ref session);
+            string actual2 = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
+            string actual3 = test.CannedResponse1("Who's there?", "Julia", ref session);
+            // Assert
+            Assert.AreEqual("Knock knock.", actual);
+            Assert.AreEqual("Spell.", actual1);
+            Assert.AreEqual("Knock knock.", actual2);
+            Assert.AreNotEqual("Spell.", actual3);
         }
 
         [TestMethod]
