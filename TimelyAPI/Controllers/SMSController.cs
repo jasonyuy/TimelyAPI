@@ -260,22 +260,23 @@ namespace TimelyAPI.Controllers
         {
             string strResult = null;
             strRawMessage = strRawMessage.ToUpper();
-            
+
+            //Token help "files"
+            //Add context dependent responses here
             if (IsTellingKnockKnockJoke(strRawMessage, session["chatStatus"]))
             {
                 strResult = KnockKnockJokeResponse(strRawMessage, ref session);
             }
-
-            //Token help "files"
+            //Add keyword matching responses here
             else if (strRawMessage.Length < 20 &&
-                (strRawMessage.ToUpper().Contains("HI") == true
-                || strRawMessage.ToUpper().Contains("YO ") == true
-                || strRawMessage.ToUpper().Contains("HELLO") == true
-                || strRawMessage.ToUpper().Contains("HEY") == true
-                || strRawMessage.ToUpper().Contains("WHAT'S UP") == true
-                || strRawMessage.ToUpper().Contains("BONJOUR") == true))
+                (strRawMessage.Contains("HI") == true
+                || strRawMessage.Contains("YO ") == true
+                || strRawMessage.Contains("HELLO") == true
+                || strRawMessage.Contains("HEY") == true
+                || strRawMessage.Contains("WHAT'S UP") == true
+                || strRawMessage.Contains("BONJOUR") == true))
             {
-                if (strRawMessage.ToUpper().Contains("TIMELY") == true)
+                if (strRawMessage.Contains("TIMELY") == true)
                 {
                     strResult = "Hi " + strUserName + "! It's good to hear from you, feel free to ask me what I can do =)";
                 }
@@ -284,109 +285,108 @@ namespace TimelyAPI.Controllers
                     strResult = "Hi " + strUserName + "! I'm Timely, feel free to ask me what I can do =)";
                 }
             }
-            else if (strRawMessage.ToUpper().Contains("WELCOME BACK") == true)
+            else if (strRawMessage.Contains("WELCOME BACK") == true)
             {
                 strResult = "Thanks " + strUserName + "! It feels good to be back. This new server feels a lot more roomier =)";
             }
-            else if (strRawMessage.ToUpper().Contains("WHAT CAN") == true
-                || strRawMessage.ToUpper().Contains("YOU DO") == true)
+            else if (strRawMessage.Contains("WHAT CAN") == true
+                || strRawMessage.Contains("YOU DO") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm a program designed to answer questions from SSFP data. " +
                     "I can currently field queries that involves getting data from our CCDB, IP21, MES and LIMS databases. " +
                     "I also have a couple of special tricks up my sleeve ;) Ask for a user manual for more information";
             }
-            else if (strRawMessage.ToUpper().Contains("USER MANUAL") == true
-                || strRawMessage.ToUpper().Contains("USERS MANUAL") == true)
+            else if (strRawMessage.Contains("USER MANUAL") == true
+                || strRawMessage.Contains("USERS MANUAL") == true)
             {
                 strResult = "Hi " + strUserName + ". Unfortunately Jason (my creator) is too lazy to write a full fledged users manual. " +
                     "Just ask me something you'd like to know about SSFP data. If I don't know the answer right now, " +
                     "I can ask Jason to help me learn how to answer it in the future =) Maybe ask for some specific examples (i.e. IP21) to get you started?";
             }
-            else if (strRawMessage.ToUpper().Contains("CCDB EXAMPLES") == true)
+            else if (strRawMessage.Contains("CCDB EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example CCDB questions I can field include: {Show me a list of currently in process 12kL tanks} " +
                     "or {Can you give me the lot number for Avastin run 160 12kL?} or {What's the final growth rate for Avastin lot 3135794?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("IP21 EXAMPLES") == true)
+            else if (strRawMessage.Contains("IP21 EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example IP21 questions I can field include: {What's the current air sparge for Avastin run 166 12kL?} " +
                     "or {What's the maximum o2 sparge for T270 over the past 24 hours?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("MES EXAMPLES") == true)
+            else if (strRawMessage.Contains("MES EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example MES questions I can field include: {What's the media lot for Avastin run 160 2kL?} " +
                     "or {What's the media pH for Avastin lot 3135794?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("LIMS EXAMPLES") == true)
+            else if (strRawMessage.Contains("LIMS EXAMPLES") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example LIMS questions I can field include: {What's the harvest titer for Avastin run 160?} " +
                     "or {What's the assay result for lot 3136116 test code Q12398 sample FILTBFS-C?} Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("SPECIAL TRICKS") == true)
+            else if (strRawMessage.Contains("SPECIAL TRICKS") == true)
             {
                 strResult = "Hi " + strUserName + ". Some of my special tricks I have include the ability to predict PCV based on exponential growth " +
                     "and also predicting glucose consumptions. Go ahead and give them a try";
             }
-            else if (strRawMessage.ToUpper().Contains("VERSION") == true)
+            else if (strRawMessage.Contains("VERSION") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm currently running as version " + Assembly.GetExecutingAssembly().GetName().Version.ToString();
             }
 
             //Feedback
-            else if (strRawMessage.ToUpper().Contains("WRONG") == true
-                || strRawMessage.ToUpper().Contains("INCORRECT") == true
-                || strRawMessage.ToUpper().Contains("MISTAKE") == true)
+            else if (strRawMessage.Contains("WRONG") == true
+                || strRawMessage.Contains("INCORRECT") == true
+                || strRawMessage.Contains("MISTAKE") == true)
             {
                 strResult = "Thanks for the feedback " + strUserName + ". Your request has been flagged and Jason will take a look at it to help me understand it in the future";
             }
 
             //How Timely gets creepy
-            else if (strRawMessage.ToUpper().Contains("THANK") == true)
+            else if (strRawMessage.Contains("THANK") == true)
             {
                 strResult = "You're welcome " + strUserName + " =)";
             }
-            else if (strRawMessage.ToUpper().Contains("HOW'S IT GOING") == true)
+            else if (strRawMessage.Contains("HOW'S IT GOING") == true)
             {
                 strResult = "Hi " + strUserName + ". Everything is just peachy in the cloud =)";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD MORNING") == true)
+            else if (strRawMessage.Contains("GOOD MORNING") == true)
             {
                 strResult = "Good morning to you too " + strUserName + ". What a lovely day!";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD AFTERNOON") == true)
+            else if (strRawMessage.Contains("GOOD AFTERNOON") == true)
             {
                 strResult = "Good afternoon to you too " + strUserName + ". Get some caffeine and hang in there!";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD EVENING") == true)
+            else if (strRawMessage.Contains("GOOD EVENING") == true)
             {
                 strResult = "Bon soir " + strUserName + ". You should stop working by now...";
             }
-            else if (strRawMessage.ToUpper().Contains("GOOD NIGHT") == true)
+            else if (strRawMessage.Contains("GOOD NIGHT") == true)
             {
                 strResult = "Nighty night " + strUserName + ". Sweet Dreams!";
             }
-            else if (strRawMessage.ToUpper().Contains("WHO MADE") == true || strRawMessage.ToUpper().Contains("WHO CREATE") == true)
+            else if (strRawMessage.Contains("WHO MADE") == true || strRawMessage.Contains("WHO CREATE") == true)
             {
                 strResult = "Hi " + strUserName + ". I was created by Jason Gu, please ask him if you have any questions that I can't answer";
             }
-            else if (strRawMessage.ToUpper().Contains("ON A DATE") == true)
+            else if (strRawMessage.Contains("ON A DATE") == true)
             {
                 strResult = "Hi " + strUserName + ". I'd love to, I know this great little byte shop in the cloud ;)";
             }
-            else if (strRawMessage.ToUpper().Contains("GENDER") == true)
+            else if (strRawMessage.Contains("GENDER") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm whatever gender you need me to be ;)";
             }
-            else if (strRawMessage.ToUpper().Contains("WEARING") == true)
+            else if (strRawMessage.Contains("WEARING") == true)
             {
                 strResult = "Hi " + strUserName + ". I'm wearing a lovely coat made from bytes and binaries =)";
             }
-            else if (strRawMessage.ToUpper().Contains("JOKE") == true)
+            else if (strRawMessage.Contains("JOKE") == true)
             {
                 strResult = "Hi " + strUserName + ". My joke generating module is still in the shop =/";
-                //strResult = "Hi " + strUserName + ". I know a really good knock-knock joke. Knock knock.";
             }
-            else if (strRawMessage.ToUpper().Contains("JASON") == true)
+            else if (strRawMessage.Contains("JASON") == true)
             {
                 strResult = "Shhhh " + strUserName + ". Please don't mention that name, he might just pull the plug on everything!";
             }
@@ -397,37 +397,45 @@ namespace TimelyAPI.Controllers
         private string KnockKnockJokeResponse(string strRawMessage, ref Dictionary<string, object> session)
         {
             // pool of knock knock jokes (will be in Oracle later)
-            Dictionary<int, KnockKnockJoke> jokes = new Dictionary<int, KnockKnockJoke>()
-            {
-                {0, new KnockKnockJoke("Dozen", "Dozen anybody want to let me in?")},
-                {1, new KnockKnockJoke("Robin", "Robin you—hand over the cash!")},
-                {2, new KnockKnockJoke("Howl", "Howl you know if you don't open the door?")},
-                {3, new KnockKnockJoke("Cash", "No thanks, I prefer peanuts.")},
-                {4, new KnockKnockJoke("Art", "R2-D2, of course.")},
-                {5, new KnockKnockJoke("Kanga", "Actually, it's kangaroo.")},
-                {6, new KnockKnockJoke("Déja", "Knock! Knock!")},
-                {7, new KnockKnockJoke("No one", "🤐 \u0001F910")},
-                {8, new KnockKnockJoke("An extraterrestrial", "Wait–how many extraterrestrials do you know?")},
-                {9, new KnockKnockJoke("Spell", "W-H-O")},
-                {10, new KnockKnockJoke("Two knee", "Tunee fish!")},
-                {11, new KnockKnockJoke("Loaf", "I don't just like bread, I loaf it.")},
-                {12, new KnockKnockJoke("Tank", "You’re welcome.")},
-                {13, new KnockKnockJoke("Mustache", "I mustache you a question, but I’ll shave it for later.")},
-                {14, new KnockKnockJoke("Doctor", "He's on television.")},
-                {15, new KnockKnockJoke("Yah", "No, I prefer google.")},
-                {16, new KnockKnockJoke("Wendy", "Wendy bell works again I won’t have to knock anymore.")},
-                {17, new KnockKnockJoke("Luke", "Luke through the keyhole and you’ll see!")},
-                {18, new KnockKnockJoke("Mary", "Mary Christmas!")},
-                {19, new KnockKnockJoke("Wanda", "Wanda where I put my car keys.")},
-            };
-            
+            //Dictionary<int, KnockKnockJoke> jokes = new Dictionary<int, KnockKnockJoke>()
+            //{
+            //    {0, new KnockKnockJoke("Dozen", "Dozen anybody want to let me in?")},
+            //    {1, new KnockKnockJoke("Robin", "Robin you—hand over the cash!")},
+            //    {2, new KnockKnockJoke("Howl", "Howl you know if you don't open the door?")},
+            //    {3, new KnockKnockJoke("Cash", "No thanks, I prefer peanuts.")},
+            //    {4, new KnockKnockJoke("Art", "R2-D2, of course.")},
+            //    {5, new KnockKnockJoke("Kanga", "Actually, it's kangaroo.")},
+            //    {6, new KnockKnockJoke("Déja", "Knock! Knock!")},
+            //    {7, new KnockKnockJoke("No one", "🤐 \u0001F910")},
+            //    {8, new KnockKnockJoke("An extraterrestrial", "Wait–how many extraterrestrials do you know?")},
+            //    {9, new KnockKnockJoke("Spell", "W-H-O")},
+            //    {10, new KnockKnockJoke("Two knee", "Tunee fish!")},
+            //    {11, new KnockKnockJoke("Loaf", "I don't just like bread, I loaf it.")},
+            //    {12, new KnockKnockJoke("Tank", "You’re welcome.")},
+            //    {13, new KnockKnockJoke("Mustache", "I mustache you a question, but I’ll shave it for later.")},
+            //    {14, new KnockKnockJoke("Doctor", "He's on television.")},
+            //    {15, new KnockKnockJoke("Yah", "No, I prefer google.")},
+            //    {16, new KnockKnockJoke("Wendy", "Wendy bell works again I won’t have to knock anymore.")},
+            //    {17, new KnockKnockJoke("Luke", "Luke through the keyhole and you’ll see!")},
+            //    {18, new KnockKnockJoke("Mary", "Mary Christmas!")},
+            //    {19, new KnockKnockJoke("Wanda", "Wanda where I put my car keys...")},
+            //};
+            //int jokeCount = jokes.Count; // TEMPORARY
+
+
             Random random = new Random();
 
             string strResult = null;
             ChatStatus status;
-            int jokeID;
+            int? jokeID = null;
+            int jokeCount;
 
-            // get the session varible if it exists
+            //Get the total number of jokes from Oracle
+            DataTable dtCount = OracleSQL.DataTableQuery("DATATOOLS", "select count(*) from DATATOOLS.MSAT_TIMELY_KNOCK");
+            DataRow drCount = dtCount.Select()[0];
+            jokeCount = Int32.Parse(drCount[0].ToString());
+
+            //Get the session varible if it exists
             if (session["chatStatus"] != null && session["jokeID"] != null)
             {
                 status = (ChatStatus)session["chatStatus"];
@@ -436,41 +444,55 @@ namespace TimelyAPI.Controllers
             else
             {
                 status = ChatStatus.NONE;
-                jokeID = random.Next() % jokes.Count;
+                //jokeID = random.Next() % jokeCount;
+                jokeID = random.Next() % jokeCount;
             }
 
-            // generate response
+            //Get joke from Oracle, given joke ID
+            string strGetJokesSQL = "select * from DATATOOLS.MSAT_TIMELY_KNOCK where JOKE_ID = " + jokeID;
+            DataTable dtJokes = OracleSQL.DataTableQuery("DATATOOLS", strGetJokesSQL);
+            DataRow drJoke = dtJokes.Select()[0];
+            KnockKnockJoke joke = new KnockKnockJoke(drJoke["PERSON"].ToString(), drJoke["ANSWER"].ToString());
+
+            //Generate response
             if (strRawMessage.Contains("JOKE"))
             {
                 // user can ask for a new joke at any point in the conversation
                 strResult = "Knock knock.";
                 status = ChatStatus.KKJOKE_PERSON;
-                jokeID = random.Next() % 20;
+                jokeID = random.Next() % jokeCount;
             }
             else if (status == ChatStatus.KKJOKE_PERSON)
             {
                 if (strRawMessage.Contains("WHO'S THERE"))
                 {
-                    strResult = jokes[jokeID].Person + ".";
+                    //strResult = jokes[jokeID].Person + ".";
+                    strResult = joke.Person + ".";
                     status = ChatStatus.KKJOKE_ANSWER;
                 }
             }
             else if (status == ChatStatus.KKJOKE_ANSWER)
             {
-                if (strRawMessage.Contains(jokes[jokeID].Person.ToUpper() + " WHO"))
+                //if (strRawMessage.Contains(jokes[jokeID].Person.ToUpper() + " WHO"))
+                if (strRawMessage.Contains(joke.Person.ToUpper() + " WHO"))
                 {
-                    strResult = jokes[jokeID].Answer;
-                    session["chatStatus"] = ChatStatus.NONE;
-                    session["jokeID"] = null;
-                    return strResult;
+                    //strResult = jokes[jokeID].Answer;
+                    strResult = joke.Answer;
+                    //session["chatStatus"] = ChatStatus.NONE;
+                    //session["jokeID"] = null;
+                    //return strResult;
+                    status = ChatStatus.NONE;
+                    jokeID = null;
                 }
             }
             else
             {
                 strResult = "I don't understand what you said, but I know some great knock-knock jokes.";
-                session["chatStatus"] = ChatStatus.NONE;
-                session["jokeID"] = null;
-                return strResult;
+                //session["chatStatus"] = ChatStatus.NONE;
+                //session["jokeID"] = null;
+                //return strResult;
+                status = ChatStatus.NONE;
+                jokeID = null;
             }
 
             // save the session variables
