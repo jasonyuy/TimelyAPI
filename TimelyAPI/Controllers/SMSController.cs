@@ -56,14 +56,13 @@ namespace TimelyAPI.Controllers
 
             //Handle some pleasantries
             //if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse(strRawMessage, clsUser.name); };
-            if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse1(strRawMessage, clsUser.name, ref sessionVars); };
-
-            //Process the message
-            if (string.IsNullOrEmpty(strResult)) { strResult = ProcessMessage(strRawMessage, clsUser.unix); };
+            if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse1(strRawMessage, clsUser.name, ref sessionVars); }
 
             //Generate the response string
             if (string.IsNullOrEmpty(strResponse))
             {
+                //Process the message
+                strResult = ProcessMessage(strRawMessage, clsUser.unix);
                 if (string.IsNullOrEmpty(strResult))
                 {
                     strResponse = "Hi " + clsUser.name + ". Sorry, I couldn't find anything based on the information you provided, can you please refine your request?";
@@ -71,13 +70,16 @@ namespace TimelyAPI.Controllers
                 else
                 {
                     strResponse = "Hi " + clsUser.name + ". " + strResult;
-                    strRawMessage = strRawMessage.Replace("'", "''");
-                    strResponse = strResponse.Replace("'", "''");
                     if (clsUser.name != "Random Person")
-                    //Write the output to the log
                     {
+                        strRawMessage = strRawMessage.Replace("'", "''");
+                        strResponse = strResponse.Replace("'", "''");
+
+                        //Write the output to the log
                         OracleSQL.OracleWrite("DATATOOLS", "insert into MSAT_SERVICE_LOG (LOG_ID,APPLICATION,INPUT_TEXT,OUTPUT_TEXT,MESSAGE_TIME,USER_ID)" +
                         " values (SQ_MSAT_SERVICE_LOG_ID.NextVal,'TimelyAPI','" + strRawMessage + "','" + strResponse + "',CURRENT_TIMESTAMP," + clsUser.id + ")");
+
+                        strResponse = strResponse.Replace("''", "'");
                     }
                 }
             }
@@ -87,7 +89,6 @@ namespace TimelyAPI.Controllers
             Session["jokeID"] = sessionVars["jokeID"];
 
             //Generate the TwlML response and fire
-            strResponse = strResponse.Replace("''", "'");
             var twiml = new TwilioResponse();
             var strmessage = twiml.Message(strResponse);
             return TwiML(strmessage);
