@@ -479,6 +479,8 @@ namespace TimelyAPI.Tests
             //Arrange
             SMSController test = new SMSController();
             var session = new Dictionary<string, Object>();
+            session["jokeID"] = null;
+            session["chatStatus"] = null;
             //Act
             string strTestResult = test.CannedResponse1("Tell me a joke", "Julia", ref session);
             //Assert
