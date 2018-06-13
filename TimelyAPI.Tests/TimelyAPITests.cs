@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TimelyAPI.Controllers;
 
@@ -411,6 +412,24 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
+        public void AmbiguityPHWithSessionTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            var session = new Dictionary<string, Object>();
+            session["jokeID"] = null;
+            session["chatStatus"] = null;
+            session["prevMessage"] = null;
+            //Act
+            string strTestResult = test.ProcessMessage1("Current pH on T320?", "test", ref session);
+            string strTestResult2 = test.ProcessMessage1("Media", "test", ref session);
+            //Assert
+            Assert.AreEqual("I understand you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?", strTestResult);
+            Assert.AreEqual("6.206", strTestResult2);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
         public void AmbiguityIdentifierTest()
         {
             //Arrange
@@ -419,6 +438,26 @@ namespace TimelyAPI.Tests
             string strTestResult = test.ProcessMessage("What is do2 in 250?", "test");
             //Assert
             Assert.AreEqual("I can't seem to find any valid batch identifiers in your request (i.e, product, lot, run, equipment). Can you try re-phrasing your request with at least one identifier?", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void AmbiguityIdentifierWithSessionTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            var session = new Dictionary<string, Object>();
+            session["jokeID"] = null;
+            session["chatStatus"] = null;
+            session["prevMessage"] = null;
+            //Act
+            string strTestResult = test.ProcessMessage1("What is do2 in 250?", "test", ref session);
+            string strTestResult2 = test.ProcessMessage1("T250", "test", ref session);
+            string strTestResult3 = test.ProcessMessage1("Online", "test", ref session);
+            //Assert
+            Assert.AreEqual("I can't seem to find any valid batch identifiers in your request (i.e, product, lot, run, equipment). Can you try re-phrasing your request with at least one identifier?", strTestResult);
+            Assert.AreEqual("I understand you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?", strTestResult2);
+            Assert.IsTrue(Regex.Match(strTestResult3, @"The current ONLINE DO2 value for vessel T250 is \d+.\d+ %Sat").Success);
             Console.WriteLine(strTestResult);
         }
 
@@ -433,7 +472,25 @@ namespace TimelyAPI.Tests
             Assert.AreEqual("I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)", strTestResult);
             Console.WriteLine(strTestResult);
         }
-        
+
+        [TestMethod]
+        public void AmbiguityTiterWithSessionTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            var session = new Dictionary<string, Object>();
+            session["jokeID"] = null;
+            session["chatStatus"] = null;
+            session["prevMessage"] = null;
+            //Act
+            string strTestResult = test.ProcessMessage1("What is the titer for Avastin?", "test", ref session);
+            string strTestResult2 = test.ProcessMessage1("Harvest", "test", ref session);
+            //Assert
+            Assert.AreEqual("I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)", strTestResult);
+            Assert.IsTrue(Regex.Match(strTestResult2, @"The CLARCC titer for AVASTIN class 12KL is \d+.\d+ mg/mL").Success);
+            Console.WriteLine(strTestResult);
+        }
+
         [TestMethod]
         public void VersionTest()
         {
