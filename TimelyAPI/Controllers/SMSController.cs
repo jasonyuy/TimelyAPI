@@ -53,6 +53,7 @@ namespace TimelyAPI.Controllers
             var sessionVars = new Dictionary<string, Object>();
             sessionVars["jokeID"] = Session["jokeID"];
             sessionVars["chatStatus"] = Session["chatStatus"];
+            sessionVars["prevMessage"] = Session["prevMessage"];
 
             //Handle some pleasantries
             //if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse(strRawMessage, clsUser.name); };
@@ -87,6 +88,7 @@ namespace TimelyAPI.Controllers
             //Save session states
             Session["chatStatus"] = sessionVars["chatStatus"];
             Session["jokeID"] = sessionVars["jokeID"];
+            Session["prevMessage"] = sessionVars["prevMessage"];
 
             //Generate the TwlML response and fire
             var twiml = new TwilioResponse();
@@ -242,15 +244,43 @@ namespace TimelyAPI.Controllers
             /// <summary>
             /// User has not started the conversation.
             /// </summary>
-            NONE,
+            None,
             /// <summary>
-            /// User has asked who's there.
+            /// For knock knock joke: User has asked who's there.
             /// </summary>
-            KKJOKE_PERSON,
+            KnockPerson,
             /// <summary>
-            /// User has asked {person} who.
+            /// For knock knock joke: User has asked {person} who.
             /// </summary>
-            KKJOKE_ANSWER
+            KnockAnswer,
+            /// <summary>
+            /// Unknown equipment, should ask user for equipment. 
+            /// </summary>
+            UnkEquipment,
+            /// <summary>
+            /// Unknown station, should ask user for station.
+            /// </summary>
+            UnkStation,
+            /// <summary>
+            /// Should ask user to specify offline, online, or media pH.
+            /// </summary>
+            Specify_pH,
+            /// <summary>
+            /// Should ask user to specify offline or online dO2.
+            /// </summary>
+            Specify_dO2,
+            /// <summary>
+            /// Should ask user to specify which titer result.
+            /// </summary>
+            SpecifyTiter,
+            /// <summary>
+            /// Missing batch identifier. 
+            /// </summary>
+            UnkBatch,
+            /// <summary>
+            /// Should ask user to specify target paramter.
+            /// </summary>
+            SpecifyTarget,
         };
         /// <summary>
         /// Changes made:
@@ -443,7 +473,7 @@ namespace TimelyAPI.Controllers
             }
             else
             {
-                status = ChatStatus.NONE;
+                status = ChatStatus.None;
                 //jokeID = random.Next() % jokeCount;
                 jokeID = random.Next() % jokeCount;
             }
@@ -459,19 +489,19 @@ namespace TimelyAPI.Controllers
             {
                 // user can ask for a new joke at any point in the conversation
                 strResult = "Knock knock.";
-                status = ChatStatus.KKJOKE_PERSON;
+                status = ChatStatus.KnockPerson;
                 jokeID = random.Next() % jokeCount;
             }
-            else if (status == ChatStatus.KKJOKE_PERSON)
+            else if (status == ChatStatus.KnockPerson)
             {
                 if (strRawMessage.Contains("WHO'S THERE"))
                 {
                     //strResult = jokes[jokeID].Person + ".";
                     strResult = joke.Person + ".";
-                    status = ChatStatus.KKJOKE_ANSWER;
+                    status = ChatStatus.KnockAnswer;
                 }
             }
-            else if (status == ChatStatus.KKJOKE_ANSWER)
+            else if (status == ChatStatus.KnockAnswer)
             {
                 //if (strRawMessage.Contains(jokes[jokeID].Person.ToUpper() + " WHO"))
                 if (strRawMessage.Contains(joke.Person.ToUpper() + " WHO"))
@@ -481,7 +511,7 @@ namespace TimelyAPI.Controllers
                     //session["chatStatus"] = ChatStatus.NONE;
                     //session["jokeID"] = null;
                     //return strResult;
-                    status = ChatStatus.NONE;
+                    status = ChatStatus.None;
                     jokeID = null;
                 }
             }
@@ -491,7 +521,7 @@ namespace TimelyAPI.Controllers
                 //session["chatStatus"] = ChatStatus.NONE;
                 //session["jokeID"] = null;
                 //return strResult;
-                status = ChatStatus.NONE;
+                status = ChatStatus.None;
                 jokeID = null;
             }
 
@@ -512,7 +542,7 @@ namespace TimelyAPI.Controllers
             // then check if Timely is supposed to finish telling a joke
             if (chatStatus != null)
             {
-                if ((ChatStatus)chatStatus == ChatStatus.KKJOKE_PERSON || (ChatStatus)chatStatus == ChatStatus.KKJOKE_ANSWER)
+                if ((ChatStatus)chatStatus == ChatStatus.KnockPerson || (ChatStatus)chatStatus == ChatStatus.KnockAnswer)
                 {
                     return true;
                 }
@@ -907,6 +937,441 @@ namespace TimelyAPI.Controllers
             {
                 strResult = CCDB.BatchQuery(Inputs.CCDB_Batchparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.listflag);
             }
+
+            return strResult;
+        }
+        public string ProcessMessage1(string InputString, string strUserUnix, ref Dictionary<string, Object> session)
+        {
+            //Initalize variables
+            var Inputs = new cInputs();
+            string strResult = null;
+            ChatStatus chatStatus = ChatStatus.None;
+            string strPrevMessage = null;
+            string strMessageToStore = null;
+
+            //Clean up the message, get rid of any punctuations
+            string strRawMessage = InputString.Replace("?", "");
+            strRawMessage = strRawMessage.Replace("!", "");
+            strRawMessage = strRawMessage.Replace(":", "");
+            strRawMessage = strRawMessage.Replace(";", ""); //To prevent stupid SQL injections
+            strRawMessage = strRawMessage.Replace("--", ""); //To prevent stupid SQL injections
+            strRawMessage = strRawMessage.Replace(",", "");
+            //strRawMessage = strRawMessage.Replace(".", ""); //Can't remove periods due to decimal values
+            strRawMessage = strRawMessage.Replace("'", "");
+            strRawMessage = strRawMessage.Replace("*", "");
+            strRawMessage = strRawMessage.Replace("[", "");
+            strRawMessage = strRawMessage.Replace("]", "");
+            strRawMessage = strRawMessage.Replace("{", "");
+            strRawMessage = strRawMessage.Replace("}", "");
+            strRawMessage = strRawMessage.Replace("running", ""); //Will get picked up by the run number search
+
+            //Get session variables if they exist
+            chatStatus = (session["chatStatus"] != null) ? (ChatStatus)session["chatStatus"] : ChatStatus.None;
+
+            //Append previous message if Timely is waiting for user to specify something
+            strPrevMessage = (session["prevMessage"] != null) ? (string)session["prevMessage"] : null;
+            switch (chatStatus)
+            {
+                case ChatStatus.Specify_pH:
+                    {
+                        // if user says "online", make it "online pH".
+                        strRawMessage = strRawMessage.TrimEnd() + " pH";
+                        break;
+                    }
+                case ChatStatus.Specify_dO2:
+                    {
+                        // if user says "online", make it "online dO2".
+                        strRawMessage = strRawMessage.TrimEnd() + " dO2";
+                        break;
+                    }
+            }
+            if (session["prevMessage"] != null)
+            {
+                strRawMessage += " " + strPrevMessage;
+            }
+
+            //Load definitions from DATATOOLS
+            //DataTable dtParameterDef = new DataTable();
+            //dtParameterDef = OracleSQL.DataTableQuery("DATATOOLS", "select * from DATATOOLS.MSAT_PARAMETERS");
+            //DataRow[] drCCDBBatchParameters = dtParameterDef.Select("SOURCE = 'CCDB' AND NOTES = 'BATCH'");
+            //DataRow[] drCCDBSampleParameters = dtParameterDef.Select("SOURCE = 'CCDB' AND NOTES = 'SAMPLE'");
+            //DataRow[] drIPFermParameters = dtParameterDef.Select("SOURCE = 'IPFERM'");
+            //string[] aryCCDBBatchParameters = drCCDBBatchParameters.AsEnumerable().Select(row => row.Field<string>("ABBREV")).ToArray().Select(s => s.ToUpperInvariant()).ToArray();
+
+            //Define the different lookup arrays
+            string[] aryCCDBBatchParameters = { "PRODUCT", "PROCESS", "SCALE", "TANK", "VESSEL", "EQUIPMENT", "FERM", "BIOREACTOR", "LOT", "RUN", "START TIME", "END TIME", "DURATION", "THAW TIME", "THAW LINE", "STATION", "GCODE" };
+            string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM",
+                                             "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
+            string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
+            string[] aryIPRecParameters = { "PHASE" };
+            string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
+            string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
+            string[] aryLIMSParameters = { "TITER", "ASSAY" };
+            string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
+            string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
+            string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" };
+            string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
+            string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
+            string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
+            string[] arySpecial = { "PREDICT", "TITER", "CRASH", "SENTRY", "LMK", "LET ME KNOW", "SNOOZE" };
+            string[] aryLimits = { "REACH", "HIT", "WILL BE", "ABOVE", "BELOW", "GREATER", "LESS", "ENABLE", "DISABLE", "ACTIVATE", "DEACTIVATE", "TURN ON", "TURN OFF" };
+            string[] aryTimeFlags = { "WHEN", "TIME" };
+            string[] aryListFlags = { "LIST", "ALL" };
+            string[] aryStep = { "HARVEST", "PREHARV" };
+
+            //Verification Arrays
+            string[] EquipmentVerify = { "T271", "T280", "T270", "T281", "T320", "T310", "T240", "T241", "T251", "T250", "T221", "T231", "T232", "T222", "T212", "T201", "T211", "T202", "T1219", "T1220", "T1218", "T1217", "T1215", "T1213", "T7350",
+                "X1312", "X1360", "X1362", "X1363", "X1449", "X1454", "X1455", "X1473", "X1474", "X7707", "X7710", "X7711", "X7715" };
+            string[] StationVerify = { "3410_01", "3410_02", "3410_03", "3410_04", "3410_05", "3410_06", "3410_07", "3410_08", "3810_01", "3810_02", "3810_03", "3810_04", "3810_05", "3810_06", "3810_07", "3810_08", "3810_09", "3810_10", "3810_11", "3810_12" };
+
+            //Keyword search inside string
+            int intPrevIndex = int.MaxValue;
+            foreach (string element in aryCCDBBatchParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    //The parameter found in the earliest possible location is designated as the parameter
+                    int intIndex = strRawMessage.ToUpper().IndexOf(element.ToUpper(), 0);
+                    if (intIndex < intPrevIndex)
+                    {
+                        Inputs.CCDB_Batchparameter = element;
+                    }
+                    intPrevIndex = intIndex;
+                }
+            }
+
+            string stest = StringArraySearch(strRawMessage, aryCCDBSampleParameters); //Did you mean to do something with this?
+
+            foreach (string element in aryCCDBSampleParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.CCDB_Sampleparameter = element;
+                }
+            }
+            foreach (string element in aryIPFermParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.IPFERMparameter = element;
+                }
+            }
+            foreach (string element in aryIPRecParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.IPRECparameter = element;
+                }
+            }
+            foreach (string element in aryMESTriggers)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.MESflag = element;
+                }
+            }
+            foreach (string element in aryMESParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.MESparameter = element;
+                }
+            }
+            foreach (string element in aryLIMSParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.LIMSparameter = element;
+                }
+            }
+            foreach (string element in aryTWTriggers)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.TWflag = element;
+                }
+            }
+            foreach (string element in aryTWParameters)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.TWparameter = element;
+                }
+            }
+            foreach (string element in aryProducts)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.product = element;
+                }
+            }
+            foreach (string element in aryVesselClass)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.vesselclass = element;
+                }
+            }
+            foreach (string element in aryEquipment)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.equipment = element;
+                }
+            }
+            foreach (string element in aryModifiers)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.modifier = element;
+                }
+            }
+            foreach (string element in arySpecial)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.special = element;
+                }
+            }
+            foreach (string element in aryLimits)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.limit = element;
+                }
+            }
+            foreach (string element in aryTimeFlags)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.timeflag = element;
+                }
+            }
+            foreach (string element in aryListFlags)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.listflag = element;
+                }
+            }
+            foreach (string element in aryStep)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.step = element;
+                }
+            }
+
+            //If multiple parameters are detected, reconcile
+            if (!string.IsNullOrEmpty(Inputs.IPFERMparameter) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
+            {
+                Inputs.CCDB_Sampleparameter = null;
+            }
+            if (!string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
+            {
+                Inputs.CCDB_Batchparameter = null;
+            }
+
+            //Find what's after the word product, run, lot, equipment and station, provided they're not the query parameters
+            if (string.IsNullOrEmpty(Inputs.product)) { Inputs.product = GetProduct(strRawMessage); }
+            Inputs.run = GetRun(strRawMessage);
+            Inputs.lot = GetLot(strRawMessage);
+            Inputs.equipment = GetEquipment(strRawMessage);
+            Inputs.station = GetStation(strRawMessage);
+
+            //Verify input parameters if possible
+            if (!string.IsNullOrEmpty(Inputs.equipment))
+            {
+                if (EquipmentVerify.Contains(Inputs.equipment) == false)
+                {
+                    chatStatus = ChatStatus.UnkEquipment;
+                    strMessageToStore = strRawMessage;
+                    strResult = "I can't seem to find the equipment you've specified, try again with the following format: X### (i.e. T281)";
+                }
+            }
+            if (!string.IsNullOrEmpty(Inputs.station))
+            {
+                if (StationVerify.Contains(Inputs.station) == false)
+                {
+                    chatStatus = ChatStatus.UnkStation;
+                    strMessageToStore = strRawMessage;
+                    strResult = "I can't seem to find the station you've specified, try again with the following format: ####_## (i.e. 3410_08)";
+                }
+            }
+
+            //Use Regex to find any durations in string
+            string DurationPattern = @"(\d+) (second|sec|minute|min|hour|hr|day|week)";
+            Match MatchDuration = Regex.Match(strRawMessage, DurationPattern);
+            if (MatchDuration.Success)
+            {
+                Inputs.duration = strRawMessage.Substring(MatchDuration.Index, MatchDuration.Length);
+            }
+            //Convert to numeric
+            if (!string.IsNullOrEmpty(Inputs.duration)) { Inputs.durationseconds = ConvertToSeconds(Inputs.duration); }
+
+            //Find what's after the word found from the limit array
+            string strLimit = null;
+            if (!string.IsNullOrEmpty(Inputs.limit)) { strLimit = ValueExtractor(strRawMessage, Inputs.limit); }
+            if (!string.IsNullOrEmpty(strLimit)) { Inputs.limitvalue = NumberExtractor(strLimit); }
+
+            //Find LIMS parameters if they're available
+            if (!string.IsNullOrEmpty(Inputs.LIMSparameter))
+            {
+                string strITEM = null;
+                strITEM = ValueExtractor(strRawMessage, "SAMPLE");
+                if (!string.IsNullOrEmpty(strITEM)) { Inputs.LIMSItemType = strITEM; }
+
+                Match TestCodeMatch = Regex.Match(strRawMessage, @"(Q)\d{5}");
+                if (TestCodeMatch.Success)
+                {
+                    Inputs.LIMSTestCode = strRawMessage.Substring(TestCodeMatch.Index, TestCodeMatch.Length);
+                }
+            }
+
+            //Find TW record IDs if they're available, use the same regex for lot since it's also a 6 or 7 digit number
+            if (!string.IsNullOrEmpty(Inputs.TWflag))
+            {
+                Inputs.TWRecordID = GetLot(strRawMessage);
+            }
+
+            //Custom Sentry Job
+            //Snooze Alerts
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.special))
+            {
+                if (Inputs.special.ToUpper() == "SNOOZE")
+                {
+                    strResult = Sentry.Snooze(Inputs.CCDB_Sampleparameter, Inputs.IPFERMparameter, strUserUnix, Inputs.equipment, Inputs.lot, Inputs.durationseconds);
+                }
+            }
+
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.special) && (!string.IsNullOrEmpty(Inputs.IPFERMparameter) || !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) || !string.IsNullOrEmpty(Inputs.IPRECparameter)))
+            {
+                //Create Alerts
+                if (Inputs.special.ToUpper() == "SENTRY" || Inputs.special.ToUpper() == "LMK" || Inputs.special.ToUpper() == "LET ME KNOW")
+                {
+                    strResult = Sentry.CreateJob(Inputs.CCDB_Sampleparameter, Inputs.IPFERMparameter, Inputs.IPRECparameter, strUserUnix, Inputs.equipment, Inputs.station, Inputs.lot, Inputs.durationseconds, Inputs.limit, Inputs.limitvalue, Inputs.modifier);
+                }
+            }
+
+            //Suggestion Chips
+            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.product) && string.IsNullOrEmpty(Inputs.lot) && string.IsNullOrEmpty(Inputs.vesselclass)
+                && string.IsNullOrEmpty(Inputs.run) && string.IsNullOrEmpty(Inputs.equipment) && string.IsNullOrEmpty(Inputs.station) && string.IsNullOrEmpty(Inputs.TWflag))
+            {
+                chatStatus = ChatStatus.UnkBatch;
+                strMessageToStore = strRawMessage;
+                strResult = "I can't seem to find any valid batch identifiers in your request (i.e, product, lot, run, equipment). Can you try re-phrasing your request with at least one identifier?";
+            }
+            if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains(" PH ") == true
+                && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.MESflag))
+            {
+                chatStatus = ChatStatus.Specify_pH;
+                strMessageToStore = strRawMessage;
+                strResult = "I understand you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?";
+            }
+            if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains("DO2") == true
+                && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter))
+            {
+                chatStatus = ChatStatus.Specify_dO2;
+                strMessageToStore = strRawMessage;
+                strResult = "I understand you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?";
+            }
+            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.step) && strRawMessage.ToUpper().Contains("TITER") == true)
+            {
+                chatStatus = ChatStatus.SpecifyTiter;
+                strMessageToStore = strRawMessage;
+                strResult = "I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)";
+            }
+            if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
+                string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
+                string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(strResult))
+            {
+                chatStatus = ChatStatus.SpecifyTarget;
+                strMessageToStore = strRawMessage;
+                strResult = "I can't seem to figure out what target parameter you're looking for. Can you try re-phrasing your request with a valid search parameter? (i.e. PCV, temperature, titer)";
+            };
+
+            //Now that the message is fully parsed, send them out to the models for data retrival
+            //Handle the custom/special requests first (since they tend to be more specific)
+            //Custom CCDB Algorithms
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && !string.IsNullOrEmpty(Inputs.special))
+            {
+                //Glucose Prediction
+                if (Inputs.CCDB_Sampleparameter.ToUpper() == "GLUCOSE" && Inputs.special.ToUpper() == "PREDICT")
+                {
+                    strResult = CCDB.PredictGlucoseQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.modifier, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue);
+                }
+                //PCV Prediction
+                if (Inputs.CCDB_Sampleparameter.ToUpper() == "PCV" && Inputs.special.ToUpper() == "PREDICT")
+                {
+                    strResult = CCDB.PredictPCVQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue);
+                }
+                //Viability Crash Detection
+                if (Inputs.CCDB_Sampleparameter.ToUpper() == "VIABILITY" && Inputs.special.ToUpper() == "CRASH")
+                {
+                    strResult = CCDB.ViabilityCrashQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot);
+                }
+            }
+
+            //LIMS Titer Call
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.LIMSparameter) && !string.IsNullOrEmpty(Inputs.special) && !string.IsNullOrEmpty(Inputs.step))
+            {
+                //Custom Titer lookup w/o direct lot numbers
+                if (Inputs.LIMSparameter.ToUpper() == "TITER" && Inputs.special.ToUpper() == "TITER")
+                {
+                    strResult = LIMS.TiterQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.step);
+                }
+            }
+
+            //LIMS Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.LIMSparameter) && !string.IsNullOrEmpty(Inputs.LIMSItemType) && !string.IsNullOrEmpty(Inputs.LIMSTestCode) && !string.IsNullOrEmpty(Inputs.lot))
+            {
+                strResult = LIMS.LIMSQuery(Inputs.LIMSparameter, Inputs.LIMSItemType, Inputs.LIMSTestCode, Inputs.lot);
+            }
+
+            //MES Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.MESflag) && !string.IsNullOrEmpty(Inputs.MESparameter))
+            {
+                if (Inputs.MESflag.ToUpper() == "MEDIA" || Inputs.MESflag.ToUpper() == "BATCH FEED")
+                {
+                    strResult = MES.MediaQuery(Inputs.MESflag, Inputs.MESparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station);
+                }
+                if (Inputs.MESflag.ToUpper() == "BUFFER")
+                {
+                    strResult = MES.BufferQuery(Inputs.MESflag, Inputs.MESparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station);
+                }
+            }
+
+            //TW Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.TWflag) && !string.IsNullOrEmpty(Inputs.TWparameter))
+            {
+                strResult = TW.TWQuery(strUserUnix, Inputs.TWflag, Inputs.TWparameter, Inputs.TWRecordID, Inputs.timeflag);
+            }
+
+            //IP-REC Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.IPRECparameter))
+            {
+                strResult = IPREC.PhaseDescription(Inputs.IPRECparameter, Inputs.equipment);
+            }
+
+            //IP-FERM Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.IPFERMparameter))
+            {
+                strResult = IPFERM.DataQuery(Inputs.IPFERMparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.modifier, Inputs.durationseconds);
+            }
+
+            //CCDB Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
+            {
+                strResult = CCDB.SampleQuery(Inputs.CCDB_Sampleparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.modifier, Inputs.durationseconds, Inputs.timeflag);
+            }
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Batchparameter))
+            {
+                strResult = CCDB.BatchQuery(Inputs.CCDB_Batchparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.listflag);
+            }
+
+            //Save session variables
+            session["chatStatus"] = chatStatus;
+            session["prevMessage"] = strMessageToStore;
 
             return strResult;
         }
