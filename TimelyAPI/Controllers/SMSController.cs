@@ -297,8 +297,19 @@ namespace TimelyAPI.Controllers
             {
                 strResult = KnockKnockJokeResponse(strRawMessage, ref session);
             }
+            //else if (...)
+            //{
+
+            //}
+
+            //Prioritize contextual responses (if found, return contextual responses first)
+            if (!string.IsNullOrEmpty(strResult))
+            {
+                return strResult;
+            }
+
             //Add keyword matching responses here
-            else if (strRawMessage.Length < 20 &&
+            if (strRawMessage.Length < 20 &&
                 (strRawMessage.Contains("HI") == true
                 || strRawMessage.Contains("YO ") == true
                 || strRawMessage.Contains("HELLO") == true
@@ -492,20 +503,20 @@ namespace TimelyAPI.Controllers
                 status = ChatStatus.KnockPerson;
                 jokeID = random.Next() % jokeCount;
             }
-            else if (status == ChatStatus.KnockPerson)
+            else if (status == ChatStatus.KnockPerson && strRawMessage.Contains("WHO'S THERE"))
             {
-                if (strRawMessage.Contains("WHO'S THERE"))
-                {
+                //if (strRawMessage.Contains("WHO'S THERE"))
+                //{
                     //strResult = jokes[jokeID].Person + ".";
                     strResult = joke.Person + ".";
                     status = ChatStatus.KnockAnswer;
-                }
+                //}
             }
-            else if (status == ChatStatus.KnockAnswer)
+            else if (status == ChatStatus.KnockAnswer && strRawMessage.Contains(joke.Person.ToUpper() + " WHO"))
             {
                 //if (strRawMessage.Contains(jokes[jokeID].Person.ToUpper() + " WHO"))
-                if (strRawMessage.Contains(joke.Person.ToUpper() + " WHO"))
-                {
+                //if (strRawMessage.Contains(joke.Person.ToUpper() + " WHO"))
+                //{
                     //strResult = jokes[jokeID].Answer;
                     strResult = joke.Answer;
                     //session["chatStatus"] = ChatStatus.NONE;
@@ -513,11 +524,11 @@ namespace TimelyAPI.Controllers
                     //return strResult;
                     status = ChatStatus.None;
                     jokeID = null;
-                }
+                //}
             }
             else
             {
-                strResult = "I don't understand what you said, but I know some great knock-knock jokes.";
+                //strResult = "I don't understand what you said, but I know some great knock-knock jokes.";
                 //session["chatStatus"] = ChatStatus.NONE;
                 //session["jokeID"] = null;
                 //return strResult;

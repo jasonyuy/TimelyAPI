@@ -547,7 +547,7 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
-        public void NormalKnockKnockJokeTest()
+        public void KnockKnockJokeTest()
         {
             // Arrange
             SMSController test = new SMSController();
@@ -568,7 +568,7 @@ namespace TimelyAPI.Tests
         // User should be able to ask for a new joke at any point in the conversation
         // Test may fail if Random happens to generate the same random number twice in a row
         [TestMethod]
-        public void StartNewKnockKnockJokeTest()
+        public void KnockKnockJokeStartNewTest()
         {
             // Arrange
             SMSController test = new SMSController();
@@ -586,6 +586,26 @@ namespace TimelyAPI.Tests
             Assert.AreEqual("Spell.", actual1);
             Assert.AreEqual("Knock knock.", actual2);
             Assert.AreNotEqual("Spell.", actual3);
+        }
+
+        // User should be able to ask for information on real things in the middle of joke
+        [TestMethod]
+        public void KnockKnockJokeSwitchToPHTest()
+        {
+            // Arrange
+            SMSController test = new SMSController();
+            var session = new Dictionary<string, Object>();
+            session["jokeID"] = 9;
+            session["chatStatus"] = 0;
+            // Act
+            string actual = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
+            session["jokeID"] = 9;
+            string actual1 = test.CannedResponse1("Who's there?", "Julia", ref session);
+            string actual2 = test.CannedResponse1("Hold on can you tell me real quick the current media pH on T320?", "Julia", ref session);
+            // Assert
+            Assert.AreEqual("Knock knock.", actual);
+            Assert.AreEqual("Spell.", actual1);
+            Assert.IsTrue(Regex.Match(actual2, @"\d+.\d+").Success);
         }
 
         [TestMethod]
