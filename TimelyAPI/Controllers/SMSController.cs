@@ -437,18 +437,10 @@ namespace TimelyAPI.Controllers
 
         private string KnockKnockJokeResponse(string strRawMessage, ref Dictionary<string, object> session)
         {
-            Random random = new Random();
-
             string strResult = null;
             ChatStatus status;
             int? jokeID = null;
-            int jokeCount;
-
-            //Get the total number of jokes from Oracle
-            DataTable dtCount = OracleSQL.DataTableQuery("DATATOOLS", "select count(*) from DATATOOLS.MSAT_TIMELY_KNOCK");
-            DataRow drCount = dtCount.Select()[0];
-            jokeCount = Int32.Parse(drCount[0].ToString());
-
+            
             //Get the session varible if it exists
             if (session["chatStatus"] != null && session["jokeID"] != null)
             {
@@ -458,7 +450,7 @@ namespace TimelyAPI.Controllers
             else
             {
                 status = ChatStatus.None;
-                jokeID = random.Next() % jokeCount + 1;
+                jokeID = GetNewJokeID();
             }
 
             //Get joke from Oracle, given joke ID
@@ -473,7 +465,7 @@ namespace TimelyAPI.Controllers
                 // user can ask for a new joke at any point in the conversation
                 strResult = "Knock knock.";
                 status = ChatStatus.Bridge;
-                jokeID = random.Next() % jokeCount + 1;
+                jokeID = GetNewJokeID();
             }
             else if (status == ChatStatus.Bridge && strRawMessage.Contains("WHO'S THERE"))
             {
@@ -497,6 +489,34 @@ namespace TimelyAPI.Controllers
             session["jokeID"] = jokeID;
 
             return strResult;
+        }
+
+        private int GetNewJokeID()
+        {
+            Random random = new Random();
+
+            //Get the total number of jokes from Oracle
+            DataTable dtCount = OracleSQL.DataTableQuery("DATATOOLS", "select count(*) from DATATOOLS.MSAT_TIMELY_KNOCK");
+            DataRow drCount = dtCount.Select()[0];
+            int jokeCount = Int32.Parse(drCount[0].ToString());
+
+            //Check if the joke ID exists in table
+            bool validJokeID = false;
+            int jokeID;
+            do
+            {
+                jokeID = random.Next() % jokeCount + 1;
+
+                DataTable dtExist = OracleSQL.DataTableQuery("DATATOOLS", "select * from DATATOOLS.MSAT_TIMELY_KNOCK where JOKE_ID = " + jokeID);
+                DataRow[] drExist = dtExist.Select();
+
+                if (drExist.Length > 0)
+                {
+                    validJokeID = true;
+                }
+            } while (!validJokeID);
+
+            return jokeID;
         }
 
         private bool IsTellingKnockKnockJoke(string strRawMessage, Object chatStatus)
