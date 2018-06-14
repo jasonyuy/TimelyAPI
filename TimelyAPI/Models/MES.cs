@@ -44,6 +44,9 @@ namespace TimelyAPI.Models
                     break;
             }
 
+            // Pretty print the user input, before any additional lookups
+            string strConstraintsPP = PrettyPrintConstraints(strTrigger, strParameter, strProduct, strVesselClass, strEquipment, strRun, strLot, strStation);
+
             //Define Base query
             if (string.IsNullOrEmpty(strLot))
             {
@@ -84,8 +87,28 @@ namespace TimelyAPI.Models
                     + "' and UPPER(STEP_INSTANCE_ID) like '%" + strParameter + "%' order by STEP_INSTANCE_ID, ENTRY_TIMESTAMP desc");
             }
 
-            return strResult.Trim();
+            string strPrettyPrint = strConstraintsPP + " is " + strResult.Trim();
+            return strPrettyPrint;
         }
+
+        private static string PrettyPrintConstraints(string strTrigger, string strParameter, string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strStation)
+        {
+            string strTarget = "";
+            string strInfo = "";
+
+            if (!string.IsNullOrEmpty(strTrigger)) { strTarget += " " + strTrigger; }
+            if (!string.IsNullOrEmpty(strParameter)) { strTarget += " " + strParameter; }
+
+            if (!string.IsNullOrEmpty(strProduct)) { strInfo += " " + strProduct; }
+            if (!string.IsNullOrEmpty(strRun)) { strInfo += " run " + strRun; }
+            if (!string.IsNullOrEmpty(strLot)) { strInfo += " lot " + strLot; }
+            if (!string.IsNullOrEmpty(strStation)) { strInfo += " station " + strStation; }
+            if (!string.IsNullOrEmpty(strVesselClass)) { strInfo += " " + strVesselClass; }
+            if (!string.IsNullOrEmpty(strEquipment)) { strInfo += " " + strEquipment; }
+
+            return "The" + strTarget + " for" + strInfo;
+        }
+
         public static string BufferQuery(string strTrigger, string strParameter, string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strStation)
         {
             // Query get Media information used for a selected run/lot/batch
@@ -122,6 +145,9 @@ namespace TimelyAPI.Models
                     break;
             }
 
+            // Pretty print the user input, before any additional lookups
+            string strConstraintsPP = PrettyPrintConstraints(strTrigger, strParameter, strProduct, strVesselClass, strEquipment, strRun, strLot, strStation);
+
             //Define Base query
             if (string.IsNullOrEmpty(strLot))
             {
@@ -148,7 +174,8 @@ namespace TimelyAPI.Models
                     + "' and UPPER(STEP_INSTANCE_ID) like '%" + strParameter + "%' order by STEP_INSTANCE_ID, ENTRY_TIMESTAMP desc");
             }
 
-            return strResult;
+            string strPrettyPrint = strConstraintsPP + " is " + strResult.Trim();
+            return strPrettyPrint;
         }
 
         private static Dictionary<string, string> productID =

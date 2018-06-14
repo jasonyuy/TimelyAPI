@@ -311,7 +311,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage("What's the media lot for Avastin run 160 2kL?", "test");
             //Assert
-            Assert.AreEqual("3135793", strTestResult);
+            Assert.AreEqual("The MEDIA LOT for AVASTIN run 160 2KL is 3135793", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -323,7 +323,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage("What's the batch feed lot for Avastin run 160 12kL?", "test");
             //Assert
-            Assert.AreEqual("3136014", strTestResult);
+            Assert.AreEqual("The BATCH FEED LOT for AVASTIN run 160 12KL is 3136014", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -335,7 +335,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage("What's the media pH for lot 3135794?", "test");
             //Assert
-            Assert.AreEqual("7.03", strTestResult.Trim());
+            Assert.AreEqual("The MEDIA PH for lot 3135794 is 7.03", strTestResult.Trim());
             Console.WriteLine(strTestResult);
         }
 
@@ -396,6 +396,18 @@ namespace TimelyAPI.Tests
             string strTestResult = test.ProcessMessage("Sentry, snooze alerts for online pH on T320 for 3 hrs", "test");
             //Assert
             Assert.AreEqual("Alerts for ONLINE PH on T320 will be snoozed for the next 3 hours", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void SentryActionLimitTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            //Act
+            string strTestResult = test.ProcessMessage("What's the lower action limit for dO2 on T320?", "test");
+            //Assert
+            Assert.AreEqual("5", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
