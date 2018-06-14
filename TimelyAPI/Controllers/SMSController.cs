@@ -227,13 +227,13 @@ namespace TimelyAPI.Controllers
         }
         public struct KnockKnockJoke
         {
-            public string Person { get; }
-            public string Answer { get; }
+            public string Bridge { get; }
+            public string Punchline { get; }
 
-            public KnockKnockJoke(string person, string answer)
+            public KnockKnockJoke(string bridge, string punchline)
             {
-                Person = person;
-                Answer = answer;
+                Bridge = bridge;
+                Punchline = punchline;
             }
         }
         /// <summary>
@@ -246,13 +246,13 @@ namespace TimelyAPI.Controllers
             /// </summary>
             None,
             /// <summary>
-            /// For knock knock joke: User has asked who's there.
+            /// The bridge of a knock-knock joke.
             /// </summary>
-            KnockPerson,
+            Bridge,
             /// <summary>
-            /// For knock knock joke: User has asked {person} who.
+            /// Punchline of a knock-knock joke.
             /// </summary>
-            KnockAnswer,
+            Punchline,
             /// <summary>
             /// Unknown equipment, should ask user for equipment. 
             /// </summary>
@@ -437,33 +437,6 @@ namespace TimelyAPI.Controllers
 
         private string KnockKnockJokeResponse(string strRawMessage, ref Dictionary<string, object> session)
         {
-            // pool of knock knock jokes (will be in Oracle later)
-            //Dictionary<int, KnockKnockJoke> jokes = new Dictionary<int, KnockKnockJoke>()
-            //{
-            //    {0, new KnockKnockJoke("Dozen", "Dozen anybody want to let me in?")},
-            //    {1, new KnockKnockJoke("Robin", "Robin you—hand over the cash!")},
-            //    {2, new KnockKnockJoke("Howl", "Howl you know if you don't open the door?")},
-            //    {3, new KnockKnockJoke("Cash", "No thanks, I prefer peanuts.")},
-            //    {4, new KnockKnockJoke("Art", "R2-D2, of course.")},
-            //    {5, new KnockKnockJoke("Kanga", "Actually, it's kangaroo.")},
-            //    {6, new KnockKnockJoke("Déja", "Knock! Knock!")},
-            //    {7, new KnockKnockJoke("No one", "🤐 \u0001F910")},
-            //    {8, new KnockKnockJoke("An extraterrestrial", "Wait–how many extraterrestrials do you know?")},
-            //    {9, new KnockKnockJoke("Spell", "W-H-O")},
-            //    {10, new KnockKnockJoke("Two knee", "Tunee fish!")},
-            //    {11, new KnockKnockJoke("Loaf", "I don't just like bread, I loaf it.")},
-            //    {12, new KnockKnockJoke("Tank", "You’re welcome.")},
-            //    {13, new KnockKnockJoke("Mustache", "I mustache you a question, but I’ll shave it for later.")},
-            //    {14, new KnockKnockJoke("Doctor", "He's on television.")},
-            //    {15, new KnockKnockJoke("Yah", "No, I prefer google.")},
-            //    {16, new KnockKnockJoke("Wendy", "Wendy bell works again I won’t have to knock anymore.")},
-            //    {17, new KnockKnockJoke("Luke", "Luke through the keyhole and you’ll see!")},
-            //    {18, new KnockKnockJoke("Mary", "Mary Christmas!")},
-            //    {19, new KnockKnockJoke("Wanda", "Wanda where I put my car keys...")},
-            //};
-            //int jokeCount = jokes.Count; // TEMPORARY
-
-
             Random random = new Random();
 
             string strResult = null;
@@ -485,53 +458,36 @@ namespace TimelyAPI.Controllers
             else
             {
                 status = ChatStatus.None;
-                //jokeID = random.Next() % jokeCount;
-                jokeID = random.Next() % jokeCount;
+                jokeID = random.Next() % jokeCount + 1;
             }
 
             //Get joke from Oracle, given joke ID
             string strGetJokesSQL = "select * from DATATOOLS.MSAT_TIMELY_KNOCK where JOKE_ID = " + jokeID;
             DataTable dtJokes = OracleSQL.DataTableQuery("DATATOOLS", strGetJokesSQL);
             DataRow drJoke = dtJokes.Select()[0];
-            KnockKnockJoke joke = new KnockKnockJoke(drJoke["PERSON"].ToString(), drJoke["ANSWER"].ToString());
+            KnockKnockJoke joke = new KnockKnockJoke(drJoke["BRIDGE"].ToString(), drJoke["PUNCHLINE"].ToString());
 
             //Generate response
             if (strRawMessage.Contains("JOKE"))
             {
                 // user can ask for a new joke at any point in the conversation
                 strResult = "Knock knock.";
-                status = ChatStatus.KnockPerson;
-                jokeID = random.Next() % jokeCount;
+                status = ChatStatus.Bridge;
+                jokeID = random.Next() % jokeCount + 1;
             }
-            else if (status == ChatStatus.KnockPerson && strRawMessage.Contains("WHO'S THERE"))
+            else if (status == ChatStatus.Bridge && strRawMessage.Contains("WHO'S THERE"))
             {
-                //if (strRawMessage.Contains("WHO'S THERE"))
-                //{
-                    //strResult = jokes[jokeID].Person + ".";
-                    strResult = joke.Person + ".";
-                    status = ChatStatus.KnockAnswer;
-                //}
+                strResult = joke.Bridge + ".";
+                status = ChatStatus.Punchline;
             }
-            else if (status == ChatStatus.KnockAnswer && strRawMessage.Contains(joke.Person.ToUpper() + " WHO"))
+            else if (status == ChatStatus.Punchline && strRawMessage.Contains(joke.Bridge.ToUpper() + " WHO"))
             {
-                //if (strRawMessage.Contains(jokes[jokeID].Person.ToUpper() + " WHO"))
-                //if (strRawMessage.Contains(joke.Person.ToUpper() + " WHO"))
-                //{
-                    //strResult = jokes[jokeID].Answer;
-                    strResult = joke.Answer;
-                    //session["chatStatus"] = ChatStatus.NONE;
-                    //session["jokeID"] = null;
-                    //return strResult;
-                    status = ChatStatus.None;
-                    jokeID = null;
-                //}
+                strResult = joke.Punchline;
+                status = ChatStatus.None;
+                jokeID = null;
             }
             else
             {
-                //strResult = "I don't understand what you said, but I know some great knock-knock jokes.";
-                //session["chatStatus"] = ChatStatus.NONE;
-                //session["jokeID"] = null;
-                //return strResult;
                 status = ChatStatus.None;
                 jokeID = null;
             }
@@ -553,7 +509,7 @@ namespace TimelyAPI.Controllers
             // then check if Timely is supposed to finish telling a joke
             if (chatStatus != null)
             {
-                if ((ChatStatus)chatStatus == ChatStatus.KnockPerson || (ChatStatus)chatStatus == ChatStatus.KnockAnswer)
+                if ((ChatStatus)chatStatus == ChatStatus.Bridge || (ChatStatus)chatStatus == ChatStatus.Punchline)
                 {
                     return true;
                 }

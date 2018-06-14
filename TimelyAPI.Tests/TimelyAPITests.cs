@@ -552,11 +552,11 @@ namespace TimelyAPI.Tests
             // Arrange
             SMSController test = new SMSController();
             var session = new Dictionary<string, Object>();
-            session["jokeID"] = 9;
+            session["jokeID"] = 10;
             session["chatStatus"] = 0;
             // Act
             string actual = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
-            session["jokeID"] = 9;
+            session["jokeID"] = 10;
             string actual1 = test.CannedResponse1("Who's there?", "Julia", ref session);
             string actual2 = test.CannedResponse1("Spell who?", "Julia", ref session);
             // Assert
@@ -573,11 +573,11 @@ namespace TimelyAPI.Tests
             // Arrange
             SMSController test = new SMSController();
             var session = new Dictionary<string, Object>();
-            session["jokeID"] = 9;
+            session["jokeID"] = 10;
             session["chatStatus"] = 0;
             // Act
             string actual = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
-            session["jokeID"] = 9;
+            session["jokeID"] = 10;
             string actual1 = test.CannedResponse1("Who's there?", "Julia", ref session);
             string actual2 = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
             string actual3 = test.CannedResponse1("Who's there?", "Julia", ref session);
@@ -595,12 +595,14 @@ namespace TimelyAPI.Tests
             // Arrange
             SMSController test = new SMSController();
             var session = new Dictionary<string, Object>();
-            session["jokeID"] = 9;
+            session["jokeID"] = 10;
             session["chatStatus"] = 0;
             // Act
             string actual = test.CannedResponse1("Tell me a knock-knock joke.", "Julia", ref session);
-            session["jokeID"] = 9;
+            session["jokeID"] = 10;
             string actual1 = test.CannedResponse1("Who's there?", "Julia", ref session);
+            //TODO: move more code out of Index()
+            // for example, the code to decide whether to call CannedResponse() or ProcessMessage()
             string actual2 = test.CannedResponse1("Hold on can you tell me real quick the current media pH on T320?", "Julia", ref session);
             // Assert
             Assert.AreEqual("Knock knock.", actual);
