@@ -335,54 +335,47 @@ namespace TimelyAPI.Controllers
             {
                 strResult = "Hi " + strUserName + ". I'm a program designed to answer questions from SSFP data. " +
                     "I can currently field queries that involves getting data from our CCDB, IP21, MES and LIMS databases. " +
-                    "I also have a couple of special tricks up my sleeve ;) Ask for a user manual for more information";
+                    "I also have a couple of special tricks up my sleeve ;) Ask for a user manual or simply type HELP ME for more information";
             }
             else if (strRawMessage.Contains("USER MANUAL") == true
                 || strRawMessage.Contains("USERS MANUAL") == true)
             {
                 strResult = "Hi " + strUserName + ". Unfortunately Jason (my creator) is too lazy to write a full fledged users manual. " +
                     "Just ask me something you'd like to know about SSFP data. If I don't know the answer right now, " +
-                    "I can ask Jason to help me learn how to answer it in the future =) Maybe ask for some specific examples (i.e. IP21) or simply type TIMELY HELP to get you started?";
+                    "I can ask Jason to help me learn how to answer it in the future =) Maybe ask for some specific examples (i.e. IP21) or simply type HELP ME to get you started?";
             }
-            else if (strRawMessage.Contains("CCDB EXAMPLES") == true)
+            else if (strRawMessage.Contains("CCDB EXAMPLES") == true
+                || strRawMessage.Contains("CCDB HELP") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example CCDB questions I can field include: {Show me a list of currently in process 12kL tanks} " +
                     "or {Can you give me the lot number for Avastin run 160 12kL?} or {What's the final growth rate for Avastin lot 3135794?} Go ahead and give them a try";
             }
-            else if (strRawMessage.Contains("IP21 EXAMPLES") == true)
+            else if (strRawMessage.Contains("IP21 EXAMPLES") == true
+                || strRawMessage.Contains("IP21 HELP") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example IP21 questions I can field include: {What's the current air sparge for Avastin run 166 12kL?} " +
                     "or {What's the maximum o2 sparge for T270 over the past 24 hours?} Go ahead and give them a try";
             }
-            else if (strRawMessage.Contains("MES EXAMPLES") == true)
+            else if (strRawMessage.Contains("MES EXAMPLES") == true
+                || strRawMessage.Contains("MES HELP") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example MES questions I can field include: {What's the media lot for Avastin run 160 2kL?} " +
                     "or {What's the media pH for Avastin lot 3135794?} Go ahead and give them a try";
             }
-            else if (strRawMessage.Contains("LIMS EXAMPLES") == true)
+            else if (strRawMessage.Contains("LIMS EXAMPLES") == true
+                || strRawMessage.Contains("LIMS HELP") == true)
             {
                 strResult = "Hi " + strUserName + ". Some example LIMS questions I can field include: {What's the harvest titer for Avastin run 160?} " +
                     "or {What's the assay result for lot 3136116 test code Q12398 sample FILTBFS-C?} Go ahead and give them a try";
             }
-            else if (strRawMessage.Contains("MORE HELP") == true)
-            {
-                strResult = "Hi " + strUserName + ". Some more things you can ask me:\n" +
-                    "• CCDB questions like \"Can you give me the lot number for Avastin run 160 12kL?\" or \"What's the final growth rate for Avastin lot 3135794?\"\n" +
-                    "• IP21 questions like \"What's the maximum o2 sparge for T270 over the past 24 hours?\"\n" +
-                    "• MES questions like \"What's the media pH for Avastin lot 3135794?\"\n" +
-                    "• LIMS questions like \"What's the assay result for lot 3136116 test code Q12398 sample FILTBFS-C?\" or \"Sentry, snooze alerts for online pH on T320 for 3 hrs\"\n" +
-                    "• Subscribe/snooze alerts: \"Sentry, turn on full alerts for X1360 phases\"";
-            }
             else if (strRawMessage.Contains("HELP") == true)
             {
-                strResult = "Hi " + strUserName + ". Some things you can ask me:\n" +
-                    "• \"Show me a list of currently in process 12kL tanks\"\n" +
-                    "• \"What's the current air sparge for Avastin run 166 12kL?\"\n" +
-                    "• \"What's the media lot for Avastin run 160 2kL?\"\n" +
-                    "• \"What's the harvest titer for Avastin run 160?\"\n" +
-                    "• \"Sentry, create an alert for when online pH is above 7.04 for T320\"\n" +
-                    "\n" +
-                    "For more examples, type MORE HELP";
+                strResult = "Hi " + strUserName + ". Here's a list of data sources that you can ask me: \n" +
+                    "-CCDB\n" +
+                    "-IP21\n" +
+                    "-MES\n" +
+                    "-LIMS\n" +
+                    "For more information, type CCDB HELP or other data sources followed by HELP";
             }
             else if (strRawMessage.Contains("SPECIAL TRICKS") == true)
             {

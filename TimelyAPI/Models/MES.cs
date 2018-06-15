@@ -96,20 +96,10 @@ namespace TimelyAPI.Models
             string strTarget = "";
             string strInfo = "";
 
-            if (!string.IsNullOrEmpty(strTrigger)) { strTarget += " " + strTrigger.ToLower(); }
-            if (!string.IsNullOrEmpty(strParameter))
-            {
-                if (strParameter == "PH")
-                {
-                    strTarget += " pH";
-                }
-                else
-                {
-                    strTarget += " " + strParameter.ToLower();
-                }
-            }
+            if (!string.IsNullOrEmpty(strTrigger)) { strTarget += " " + strTrigger; }
+            if (!string.IsNullOrEmpty(strParameter)) { strTarget += " " + strParameter; }
 
-            if (!string.IsNullOrEmpty(strProduct)) { strInfo += " " + strProduct[0].ToString().ToUpper() + strProduct.Substring(1).ToLower(); }
+            if (!string.IsNullOrEmpty(strProduct)) { strInfo += " " + strProduct; }
             if (!string.IsNullOrEmpty(strRun)) { strInfo += " run " + strRun; }
             if (!string.IsNullOrEmpty(strLot)) { strInfo += " lot " + strLot; }
             if (!string.IsNullOrEmpty(strStation)) { strInfo += " station " + strStation; }
