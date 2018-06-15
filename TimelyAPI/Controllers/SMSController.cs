@@ -342,7 +342,7 @@ namespace TimelyAPI.Controllers
             {
                 strResult = "Hi " + strUserName + ". Unfortunately Jason (my creator) is too lazy to write a full fledged users manual. " +
                     "Just ask me something you'd like to know about SSFP data. If I don't know the answer right now, " +
-                    "I can ask Jason to help me learn how to answer it in the future =) Maybe ask for some specific examples (i.e. IP21) to get you started?";
+                    "I can ask Jason to help me learn how to answer it in the future =) Maybe ask for some specific examples (i.e. IP21) or simply type TIMELY HELP to get you started?";
             }
             else if (strRawMessage.Contains("CCDB EXAMPLES") == true)
             {
@@ -363,6 +363,26 @@ namespace TimelyAPI.Controllers
             {
                 strResult = "Hi " + strUserName + ". Some example LIMS questions I can field include: {What's the harvest titer for Avastin run 160?} " +
                     "or {What's the assay result for lot 3136116 test code Q12398 sample FILTBFS-C?} Go ahead and give them a try";
+            }
+            else if (strRawMessage.Contains("MORE HELP") == true)
+            {
+                strResult = "Hi " + strUserName + ". Some more things you can ask me:\n" +
+                    "• CCDB questions like \"Can you give me the lot number for Avastin run 160 12kL?\" or \"What's the final growth rate for Avastin lot 3135794?\"\n" +
+                    "• IP21 questions like \"What's the maximum o2 sparge for T270 over the past 24 hours?\"\n" +
+                    "• MES questions like \"What's the media pH for Avastin lot 3135794?\"\n" +
+                    "• LIMS questions like \"What's the assay result for lot 3136116 test code Q12398 sample FILTBFS-C?\" or \"Sentry, snooze alerts for online pH on T320 for 3 hrs\"\n" +
+                    "• Subscribe/snooze alerts: \"Sentry, turn on full alerts for X1360 phases\"";
+            }
+            else if (strRawMessage.Contains("HELP") == true)
+            {
+                strResult = "Hi " + strUserName + ". Some things you can ask me:\n" +
+                    "• \"Show me a list of currently in process 12kL tanks\"\n" +
+                    "• \"What's the current air sparge for Avastin run 166 12kL?\"\n" +
+                    "• \"What's the media lot for Avastin run 160 2kL?\"\n" +
+                    "• \"What's the harvest titer for Avastin run 160?\"\n" +
+                    "• \"Sentry, create an alert for when online pH is above 7.04 for T320\"\n" +
+                    "\n" +
+                    "For more examples, type MORE HELP";
             }
             else if (strRawMessage.Contains("SPECIAL TRICKS") == true)
             {
