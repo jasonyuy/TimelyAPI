@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Web;
 using PADMEServiceLibrary;
@@ -148,16 +149,54 @@ namespace TimelyAPI.Models
             // Initialize variables
             strLimitType += " LIMIT";
             string strResult = $"Sorry! I can't seem to find the {strLimitType} you requested, can you refine your request and try again?";
+            string strUOM = null;
+
+            // Pretty print the user input, before any additional lookups
+            string strConstraintsPP = PrettyPrintConstraints(strParameter, strProduct, strVesselClass, strLimitType);
 
             // Define SQL statement
             strLimitType = strLimitType.Replace(" ", "_");
-            string strSQLLimitType = $"select {strLimitType} from MSAT_SENTRY_DEFINE_VW where UPPER(DEFINE_NAME) = '{strParameter}' and UPPER(CCDB_NAME) = '{strProduct}' and UPPER(AREA_ALIAS) like '%{strVesselClass}%'";
-            //string strSQLlimit = $"select {strLimit} from MSAT_SENTRY_DEFINE_VW where CHECK_PARA_NAME = :pParam and CCDB_NAME = :pProduct and AREA_ALIAS like '%{strVesselClass}%'";
+            string strSQLLimitType = $"select {strLimitType}, CHECK_PARA_UOM from MSAT_SENTRY_DEFINE_VW where UPPER(DEFINE_NAME) = '{strParameter}' and UPPER(CCDB_NAME) = '{strProduct}' and UPPER(AREA_ALIAS) like '%{strVesselClass}%'";
+            //string strSQLlimit = $"select {strLimit} from MSAT_SENTRY_DEFINE_VW where CHECK_PARA_NAME = :pParam and CCDB_NAME = :pProduct and AREA_ALIAS like '%pVessel%'";
 
             // Query the database
-            strResult = OracleSQL.SimpleQuery("DATATOOLS", strSQLLimitType);
+            DataTable dtResult = OracleSQL.DataTableQuery("DATATOOLS", strSQLLimitType);
+            DataRow[] drResults = dtResult.Select();
+            if (drResults.Length > 0)
+            {
+                strResult = drResults[0][strLimitType].ToString();
+                strUOM = drResults[0]["CHECK_PARA_UOM"].ToString();
+            }
+            
+            // Pretty print
+            string strPrettyPrint = strConstraintsPP + " is ";
+            switch (strParameter)
+            {
+                case "ONLINE PH": // Do people here like "pH 7.0" or "7.0 pH"?
+                    strPrettyPrint += $"{strUOM} {strResult}";
+                    break;
+                default:
+                    strPrettyPrint += $"{strResult} {strUOM}";
+                    break;
+            }
 
-            return strResult;
+            return strPrettyPrint;
+        }
+
+        private static string PrettyPrintConstraints(string strParameter, string strProduct, string strVesselClass, string strLimitType)
+        {
+            string strTarget = "";
+            string strInfo = "";
+
+            if (!string.IsNullOrEmpty(strLimitType) && !string.IsNullOrEmpty(strParameter))
+            {
+                strTarget += $" {strLimitType.ToLower()} for {strParameter}";
+            }
+
+            if (!string.IsNullOrEmpty(strProduct)) { strInfo += " " + strProduct; }
+            if (!string.IsNullOrEmpty(strVesselClass)) { strInfo += " " + strVesselClass; }
+
+            return "The" + strTarget + " for" + strInfo;
         }
     }
 }
