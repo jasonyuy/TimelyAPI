@@ -135,5 +135,29 @@ namespace TimelyAPI.Models
 
             return strResult;
         }
+        /// <summary>
+        /// Queries MSAT_SENTRY_DEFINE for action/alert limits.
+        /// </summary>
+        /// <param name="strParameter">ex: online dO2</param>
+        /// <param name="strProduct">ex: anti-Myostatin</param>
+        /// <param name="strVesselClass">ex: 2kL</param>
+        /// <param name="strLimitType">ex: upper action limit</param>
+        /// <returns></returns>
+        public static string LimitQuery(string strParameter, string strProduct, string strVesselClass, string strLimitType)
+        {
+            // Initialize variables
+            strLimitType += " LIMIT";
+            string strResult = $"Sorry! I can't seem to find the {strLimitType} you requested, can you refine your request and try again?";
+
+            // Define SQL statement
+            strLimitType = strLimitType.Replace(" ", "_");
+            string strSQLLimitType = $"select {strLimitType} from MSAT_SENTRY_DEFINE_VW where UPPER(DEFINE_NAME) = '{strParameter}' and UPPER(CCDB_NAME) = '{strProduct}' and UPPER(AREA_ALIAS) like '%{strVesselClass}%'";
+            //string strSQLlimit = $"select {strLimit} from MSAT_SENTRY_DEFINE_VW where CHECK_PARA_NAME = :pParam and CCDB_NAME = :pProduct and AREA_ALIAS like '%{strVesselClass}%'";
+
+            // Query the database
+            strResult = OracleSQL.SimpleQuery("DATATOOLS", strSQLLimitType);
+
+            return strResult;
+        }
     }
 }
