@@ -304,6 +304,32 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
+        public void SentryActionLimitTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            var session = TestSetup();
+            //Act
+            string strTestResult = test.ProcessMessage1("What's the lower action limit for online pH for anti-Myostatin 2kL?", "test", ref session);
+            //Assert
+            Assert.AreEqual("The lower action limit for ONLINE PH for ANTI-MYOSTATIN 2KL is pH 6.8", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void SentryActionLimitWithAliasTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            var session = TestSetup();
+            //Act
+            string strTestResult = test.ProcessMessage1("What's the upper action limit for temperature for Pola 400L?", "test", ref session);
+            //Assert
+            Assert.AreEqual("The upper action limit for TEMP for POLA 400L is 38 Deg C", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
         public void MESMediaLotTest()
         {
             //Arrange
@@ -396,18 +422,6 @@ namespace TimelyAPI.Tests
             string strTestResult = test.ProcessMessage("Sentry, snooze alerts for online pH on T320 for 3 hrs", "test");
             //Assert
             Assert.AreEqual("Alerts for ONLINE PH on T320 will be snoozed for the next 3 hours", strTestResult);
-            Console.WriteLine(strTestResult);
-        }
-
-        [TestMethod]
-        public void SentryActionLimitTest()
-        {
-            //Arrange
-            SMSController test = new SMSController();
-            //Act
-            string strTestResult = test.ProcessMessage("What's the lower action limit for dO2 on T320?", "test");
-            //Assert
-            Assert.AreEqual("5", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -600,7 +614,7 @@ namespace TimelyAPI.Tests
             Assert.AreNotEqual("Spell.", actual3);
         }
 
-        // User should be able to ask for information on real things in the middle of joke
+        // User should be able to ask for information on MSAT data in the middle of joke
         [TestMethod]
         public void KnockKnockJokeSwitchToPHTest()
         {
@@ -616,7 +630,7 @@ namespace TimelyAPI.Tests
             string actual1 = test.CannedResponse1("Who's there?", "Julia", ref session);
             //TODO: move more code out of Index()
             // for example, the code to decide whether to call CannedResponse() or ProcessMessage()
-            string actual2 = test.ProcessMessage1("Do you know the current media pH on T320?", "Julia", ref session);
+            string actual2 = test.ProcessMessage1("Do you know the current media pH on T320?", "test", ref session);
             // Assert
             Assert.AreEqual("Knock knock.", actual);
             Assert.AreEqual("Spell.", actual1);
@@ -719,5 +733,14 @@ namespace TimelyAPI.Tests
         }
 
         //When is the next pH/Temp shift for run xxx
+
+        private Dictionary<string, Object> TestSetup()
+        {
+            var session = new Dictionary<string, Object>();
+            session["jokeID"] = null;
+            session["chatStatus"] = 0;
+            session["prevMessage"] = null;
+            return session;
+        }
     }
 }

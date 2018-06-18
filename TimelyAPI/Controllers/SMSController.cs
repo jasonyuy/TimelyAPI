@@ -63,7 +63,8 @@ namespace TimelyAPI.Controllers
             if (string.IsNullOrEmpty(strResponse))
             {
                 //Process the message
-                strResult = ProcessMessage(strRawMessage, clsUser.unix);
+                //strResult = ProcessMessage(strRawMessage, clsUser.unix);
+                strResult = ProcessMessage1(strRawMessage, clsUser.unix, ref sessionVars);
                 if (string.IsNullOrEmpty(strResult))
                 {
                     strResponse = "Hi " + clsUser.name + ". Sorry, I couldn't find anything based on the information you provided, can you please refine your request?";
@@ -471,7 +472,7 @@ namespace TimelyAPI.Controllers
             DataTable dtJokes = OracleSQL.DataTableQuery("DATATOOLS", strGetJokesSQL);
             DataRow drJoke = dtJokes.Select()[0];
             KnockKnockJoke joke = new KnockKnockJoke(drJoke["BRIDGE"].ToString(), drJoke["PUNCHLINE"].ToString());
-
+            
             //Generate response
             if (strRawMessage.Contains("JOKE"))
             {
@@ -488,6 +489,19 @@ namespace TimelyAPI.Controllers
             else if (status == ChatStatus.Punchline && strRawMessage.Contains(joke.Bridge.ToUpper() + " WHO"))
             {
                 strResult = joke.Punchline;
+
+                // Process emojis
+                int index = strResult.IndexOf("EMOJI:");
+                while (index != -1)
+                {
+                    string strRawEmoji = strResult.Substring(index + 6, 8);
+                    string strConvertedEmoji = ""
+                    + (char)int.Parse(strRawEmoji.Substring(0, 4), System.Globalization.NumberStyles.HexNumber)
+                    + (char)int.Parse(strRawEmoji.Substring(4, 4), System.Globalization.NumberStyles.HexNumber);
+                    strResult = strResult.Replace("EMOJI:" + strRawEmoji, strConvertedEmoji);
+                    index = strResult.IndexOf("EMOJI:");
+                }
+
                 status = ChatStatus.None;
                 jokeID = null;
             }
@@ -1009,7 +1023,7 @@ namespace TimelyAPI.Controllers
             string[] aryLIMSParameters = { "TITER", "ASSAY" };
             string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
             string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
-            string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" };
+            string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" }; // TODO: add other products?
             string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
             string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
             string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
@@ -1018,11 +1032,41 @@ namespace TimelyAPI.Controllers
             string[] aryTimeFlags = { "WHEN", "TIME" };
             string[] aryListFlags = { "LIST", "ALL" };
             string[] aryStep = { "HARVEST", "PREHARV" };
+            string[] aryDefinitions = { "LOWER ACTION", "LOWER ALERT", "UPPER ALERT", "UPPER ACTION" };
 
             //Verification Arrays
             string[] EquipmentVerify = { "T271", "T280", "T270", "T281", "T320", "T310", "T240", "T241", "T251", "T250", "T221", "T231", "T232", "T222", "T212", "T201", "T211", "T202", "T1219", "T1220", "T1218", "T1217", "T1215", "T1213", "T7350",
                 "X1312", "X1360", "X1362", "X1363", "X1449", "X1454", "X1455", "X1473", "X1474", "X7707", "X7710", "X7711", "X7715" };
             string[] StationVerify = { "3410_01", "3410_02", "3410_03", "3410_04", "3410_05", "3410_06", "3410_07", "3410_08", "3810_01", "3810_02", "3810_03", "3810_04", "3810_05", "3810_06", "3810_07", "3810_08", "3810_09", "3810_10", "3810_11", "3810_12" };
+
+            // (Temporary) I don't want to clutter up the Locals window (local variables) 
+            {
+                // Get the 7 products that are in MSAT_SENTRY_DEFINE and add to aryProducts
+                // Full list seems too long?
+                LinkedList<string> llProducts = new LinkedList<string>();
+                DataTable dtSentryProduct = OracleSQL.DataTableQuery("DATATOOLS", "select unique CCDB_NAME, PROCESS_ALIAS from MSAT_SENTRY_DEFINE_VW");
+                DataRow[] drSentryProducts = dtSentryProduct.Select();
+                foreach (DataRow dr in drSentryProducts)
+                {
+                    // Add CCDB product name
+                    llProducts.AddLast(dr["CCDB_NAME"].ToString().ToUpper());
+
+                    // Also add all the process aliases
+                    string strAlias = dr["PROCESS_ALIAS"].ToString().ToUpper();
+                    string[] aryAliases = strAlias.Split(',');
+                    foreach (string alias in aryAliases)
+                    {
+                        llProducts.AddLast(alias);
+                    }
+                }
+
+                // Resize because arrays are fixed size
+                int startingIndex = aryProducts.Length;
+                Array.Resize(ref aryProducts, aryProducts.Length + llProducts.Count);
+
+                // Append to the string array for products
+                llProducts.CopyTo(aryProducts, startingIndex);
+            }
 
             //Keyword search inside string
             int intPrevIndex = int.MaxValue;
@@ -1036,11 +1080,11 @@ namespace TimelyAPI.Controllers
                     {
                         Inputs.CCDB_Batchparameter = element;
                     }
-                    intPrevIndex = intIndex;
+                    intPrevIndex = intIndex; // Did you mean to do something with this?
                 }
             }
 
-            string stest = StringArraySearch(strRawMessage, aryCCDBSampleParameters); //Did you mean to do something with this?
+            string stest = StringArraySearch(strRawMessage, aryCCDBSampleParameters);  //Did you mean to do something with this?
 
             foreach (string element in aryCCDBSampleParameters)
             {
@@ -1159,6 +1203,14 @@ namespace TimelyAPI.Controllers
                 if (strRawMessage.ToUpper().Contains(element))
                 {
                     Inputs.step = element;
+                }
+            }
+            foreach (string element in aryDefinitions)
+            {
+                if (strRawMessage.ToUpper().Contains(element))
+                {
+                    Inputs.definition = element;
+                    break;
                 }
             }
 
@@ -1281,6 +1333,11 @@ namespace TimelyAPI.Controllers
                 strMessageToStore = strRawMessage;
                 strResult = "I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)";
             }
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.definition) && 
+                (string.IsNullOrEmpty(Inputs.product) || string.IsNullOrEmpty(Inputs.IPFERMparameter) || string.IsNullOrEmpty(Inputs.vesselclass)))
+            {
+                strResult = "Missing info for finding " + Inputs.definition + ", because Julia hasn't finished implementing it"; //TODO 
+            }
             if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
                 string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
                 string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(strResult))
@@ -1354,7 +1411,7 @@ namespace TimelyAPI.Controllers
             }
 
             //IP-FERM Calls
-            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.IPFERMparameter))
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.definition))
             {
                 strResult = IPFERM.DataQuery(Inputs.IPFERMparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.modifier, Inputs.durationseconds);
             }
@@ -1367,6 +1424,12 @@ namespace TimelyAPI.Controllers
             if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.CCDB_Batchparameter))
             {
                 strResult = CCDB.BatchQuery(Inputs.CCDB_Batchparameter, Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.station, Inputs.listflag);
+            }
+
+            //Sentry calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.definition))
+            {
+                strResult = Sentry.LimitQuery(Inputs.IPFERMparameter, Inputs.product, Inputs.vesselclass, Inputs.definition);
             }
 
             //Save session variables
@@ -1406,6 +1469,7 @@ namespace TimelyAPI.Controllers
             public string LIMSTestCode { get; set; }
             public string TWRecordID { get; set; }
             public string step { get; set; }
+            public string definition { get; internal set; }
         }
         public class cUser
         {
