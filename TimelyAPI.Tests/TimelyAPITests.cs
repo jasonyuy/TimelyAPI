@@ -303,9 +303,8 @@ namespace TimelyAPI.Tests
             Console.WriteLine(strTestResult);
         }
 
-
         [TestMethod]
-        public void SentryActionLimitTest() // The data is on Toad... is that IPFERM? Sentry? CCDB? ???
+        public void SentryActionLimitTest()
         {
             //Arrange
             SMSController test = new SMSController();
@@ -313,7 +312,20 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage1("What's the lower action limit for online pH for anti-Myostatin 2kL?", "test", ref session);
             //Assert
-            Assert.AreEqual("6.8", strTestResult);
+            Assert.AreEqual("The lower action limit for ONLINE PH for ANTI-MYOSTATIN 2KL is pH 6.8", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void SentryActionLimitWithAliasTest()
+        {
+            //Arrange
+            SMSController test = new SMSController();
+            var session = TestSetup();
+            //Act
+            string strTestResult = test.ProcessMessage1("What's the upper action limit for temperature for Pola 400L?", "test", ref session);
+            //Assert
+            Assert.AreEqual("The upper action limit for TEMP for POLA 400L is 38 Deg C", strTestResult);
             Console.WriteLine(strTestResult);
         }
 

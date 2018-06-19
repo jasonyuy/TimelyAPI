@@ -156,7 +156,10 @@ namespace TimelyAPI.Models
 
             // Define SQL statement
             strLimitType = strLimitType.Replace(" ", "_");
-            string strSQLLimitType = $"select {strLimitType}, CHECK_PARA_UOM from MSAT_SENTRY_DEFINE_VW where UPPER(DEFINE_NAME) = '{strParameter}' and UPPER(CCDB_NAME) = '{strProduct}' and UPPER(AREA_ALIAS) like '%{strVesselClass}%'";
+            string strSQLLimitType = $"select {strLimitType}, CHECK_PARA_UOM from MSAT_SENTRY_DEFINE_VW" 
+                + $" where (upper(DEFINE_NAME) = '{strParameter}' or upper(CHECK_PARA_ABBREV) = '{strParameter}')"
+                + $" and (upper(CCDB_NAME) = '{strProduct}' or upper(PROCESS_ALIAS) like '%{strProduct}%')"
+                + $" and upper(AREA_ALIAS) like '%{strVesselClass}%'";
             //string strSQLlimit = $"select {strLimit} from MSAT_SENTRY_DEFINE_VW where CHECK_PARA_NAME = :pParam and CCDB_NAME = :pProduct and AREA_ALIAS like '%pVessel%'";
 
             // Query the database
