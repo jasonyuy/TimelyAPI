@@ -282,6 +282,10 @@ namespace TimelyAPI.Controllers
             /// Should ask user to specify target paramter.
             /// </summary>
             SpecifyTarget,
+            /// <summary>
+            /// Generic enum that means user should specify something.
+            /// </summary>
+            Specify,
         };
         /// <summary>
         /// Changes made:
@@ -1039,35 +1043,6 @@ namespace TimelyAPI.Controllers
                 "X1312", "X1360", "X1362", "X1363", "X1449", "X1454", "X1455", "X1473", "X1474", "X7707", "X7710", "X7711", "X7715" };
             string[] StationVerify = { "3410_01", "3410_02", "3410_03", "3410_04", "3410_05", "3410_06", "3410_07", "3410_08", "3810_01", "3810_02", "3810_03", "3810_04", "3810_05", "3810_06", "3810_07", "3810_08", "3810_09", "3810_10", "3810_11", "3810_12" };
 
-            // (Temporary) I don't want to clutter up the Locals window (local variables) 
-            {
-                // Get the 7 products that are in MSAT_SENTRY_DEFINE and add to aryProducts
-                // Full list seems too long?
-                LinkedList<string> llProducts = new LinkedList<string>();
-                DataTable dtSentryProduct = OracleSQL.DataTableQuery("DATATOOLS", "select unique CCDB_NAME, PROCESS_ALIAS from MSAT_SENTRY_DEFINE_VW");
-                DataRow[] drSentryProducts = dtSentryProduct.Select();
-                foreach (DataRow dr in drSentryProducts)
-                {
-                    // Add CCDB product name
-                    llProducts.AddLast(dr["CCDB_NAME"].ToString().ToUpper());
-
-                    // Also add all the process aliases
-                    string strAlias = dr["PROCESS_ALIAS"].ToString().ToUpper();
-                    string[] aryAliases = strAlias.Split(',');
-                    foreach (string alias in aryAliases)
-                    {
-                        llProducts.AddLast(alias);
-                    }
-                }
-
-                // Resize because arrays are fixed size
-                int startingIndex = aryProducts.Length;
-                Array.Resize(ref aryProducts, aryProducts.Length + llProducts.Count);
-
-                // Append to the string array for products
-                llProducts.CopyTo(aryProducts, startingIndex);
-            }
-
             //Keyword search inside string
             int intPrevIndex = int.MaxValue;
             foreach (string element in aryCCDBBatchParameters)
@@ -1147,6 +1122,19 @@ namespace TimelyAPI.Controllers
                 if (strRawMessage.ToUpper().Contains(element))
                 {
                     Inputs.product = element;
+                }
+            }
+            if (string.IsNullOrEmpty(Inputs.product))
+            {
+                // Not hardcoded, search again in database
+                GetProductFromOracle(ref aryProducts);
+                foreach (string element in aryProducts)
+                {
+                    if (strRawMessage.ToUpper().Contains(element))
+                    {
+                        Inputs.product = element;
+                        break;
+                    }
                 }
             }
             foreach (string element in aryVesselClass)
@@ -1238,7 +1226,7 @@ namespace TimelyAPI.Controllers
                 {
                     chatStatus = ChatStatus.UnkEquipment;
                     strMessageToStore = strRawMessage;
-                    strResult = "I can't seem to find the equipment you've specified, try again with the following format: X### (i.e. T281)";
+                    return "I can't seem to find the equipment you've specified, try again with the following format: X### (i.e. T281)";
                 }
             }
             if (!string.IsNullOrEmpty(Inputs.station))
@@ -1247,7 +1235,7 @@ namespace TimelyAPI.Controllers
                 {
                     chatStatus = ChatStatus.UnkStation;
                     strMessageToStore = strRawMessage;
-                    strResult = "I can't seem to find the station you've specified, try again with the following format: ####_## (i.e. 3410_08)";
+                    return "I can't seem to find the station you've specified, try again with the following format: ####_## (i.e. 3410_08)";
                 }
             }
 
@@ -1257,15 +1245,18 @@ namespace TimelyAPI.Controllers
             if (MatchDuration.Success)
             {
                 Inputs.duration = strRawMessage.Substring(MatchDuration.Index, MatchDuration.Length);
+                //Convert to numeric
+                Inputs.durationseconds = ConvertToSeconds(Inputs.duration);
             }
-            //Convert to numeric
-            if (!string.IsNullOrEmpty(Inputs.duration)) { Inputs.durationseconds = ConvertToSeconds(Inputs.duration); }
 
             //Find what's after the word found from the limit array
-            string strLimit = null;
-            if (!string.IsNullOrEmpty(Inputs.limit)) { strLimit = ValueExtractor(strRawMessage, Inputs.limit); }
-            if (!string.IsNullOrEmpty(strLimit)) { Inputs.limitvalue = NumberExtractor(strLimit); }
-
+            if (!string.IsNullOrEmpty(Inputs.limit))
+            {
+                string strLimit = null;
+                strLimit = ValueExtractor(strRawMessage, Inputs.limit);
+                if (!string.IsNullOrEmpty(strLimit)) { Inputs.limitvalue = NumberExtractor(strLimit); }
+            }
+            
             //Find LIMS parameters if they're available
             if (!string.IsNullOrEmpty(Inputs.LIMSparameter))
             {
@@ -1313,39 +1304,41 @@ namespace TimelyAPI.Controllers
                 strMessageToStore = strRawMessage;
                 strResult = "I can't seem to find any valid batch identifiers in your request (i.e, product, lot, run, equipment). Can you try re-phrasing your request with at least one identifier?";
             }
-            if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains(" PH ") == true
+            else if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains(" PH ") == true
                 && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.MESflag))
             {
                 chatStatus = ChatStatus.Specify_pH;
                 strMessageToStore = strRawMessage;
                 strResult = "I understand you're requesting pH data. However, can you try re-phrasing your request and specifying whether you'd like offline, online or media pH?";
             }
-            if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains("DO2") == true
+            else if (string.IsNullOrEmpty(strResult) && strRawMessage.ToUpper().Contains("DO2") == true
                 && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.IPFERMparameter))
             {
                 chatStatus = ChatStatus.Specify_dO2;
                 strMessageToStore = strRawMessage;
                 strResult = "I understand you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?";
             }
-            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.step) && strRawMessage.ToUpper().Contains("TITER") == true)
+            else if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.step) && strRawMessage.ToUpper().Contains("TITER") == true)
             {
                 chatStatus = ChatStatus.SpecifyTiter;
                 strMessageToStore = strRawMessage;
-                strResult = "I understand you're requesting titer data. However, can you try re-phrasing your request and specifying whether which titer result you'd like? (i.e. preharv or harvest)";
+                strResult = "I understand you're requesting titer data. However, can you try re-phrasing your request and specifying which titer result you'd like? (i.e. preharv or harvest)";
             }
-            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.definition) && 
+            else if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.definition) && 
                 (string.IsNullOrEmpty(Inputs.product) || string.IsNullOrEmpty(Inputs.IPFERMparameter) || string.IsNullOrEmpty(Inputs.vesselclass)))
             {
-                strResult = "Missing info for finding " + Inputs.definition + ", because Julia hasn't finished implementing it"; //TODO 
+                chatStatus = ChatStatus.Specify;
+                strMessageToStore = strRawMessage;
+                strResult = $"I understand you're asking about {Inputs.definition.ToLower()} limit. However, I'm missing either the PRODUCT, VESSEL SIZE, or TARGET PARAMETER (i.e. Temperature) from the information you provided";
             }
-            if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
+            else if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
                 string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
                 string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(strResult))
             {
                 chatStatus = ChatStatus.SpecifyTarget;
                 strMessageToStore = strRawMessage;
                 strResult = "I can't seem to figure out what target parameter you're looking for. Can you try re-phrasing your request with a valid search parameter? (i.e. PCV, temperature, titer)";
-            };
+            }
 
             //Now that the message is fully parsed, send them out to the models for data retrival
             //Handle the custom/special requests first (since they tend to be more specific)
@@ -1504,6 +1497,36 @@ namespace TimelyAPI.Controllers
             }
             return strValue;
         }
+
+        private void GetProductFromOracle(ref string[] aryProducts)
+        {
+            // Get the 7 products that are in MSAT_SENTRY_DEFINE and add to aryProducts
+            // Full list seems too long?
+            LinkedList<string> llProducts = new LinkedList<string>();
+            DataTable dtSentryProduct = OracleSQL.DataTableQuery("DATATOOLS", "select unique CCDB_NAME, PROCESS_ALIAS from MSAT_SENTRY_DEFINE_VW");
+            DataRow[] drSentryProducts = dtSentryProduct.Select();
+            foreach (DataRow dr in drSentryProducts)
+            {
+                // Add CCDB product name
+                llProducts.AddLast(dr["CCDB_NAME"].ToString().ToUpper());
+
+                // Also add all the process aliases
+                string strAlias = dr["PROCESS_ALIAS"].ToString().ToUpper();
+                string[] aryAliases = strAlias.Split(',');
+                foreach (string alias in aryAliases)
+                {
+                    llProducts.AddLast(alias);
+                }
+            }
+
+            // Resize because arrays are fixed size
+            int startingIndex = aryProducts.Length;
+            Array.Resize(ref aryProducts, aryProducts.Length + llProducts.Count);
+
+            // Append to the string array for products
+            llProducts.CopyTo(aryProducts, startingIndex);
+        }
+
         public string GetLot(string SearchString)
         {
             string strValue = null;
