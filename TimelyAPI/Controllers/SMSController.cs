@@ -1525,7 +1525,7 @@ namespace TimelyAPI.Controllers
                         }
                     case "IP-FERM":
                         {
-                            inputs.IPFERMparameter = strEntity;
+                            inputs.IPFERMparameter = strRaw;
                             break;
                         }
                 }
