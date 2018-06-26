@@ -1016,11 +1016,61 @@ namespace TimelyAPI.Controllers
             //DataRow[] drIPFermParameters = dtParameterDef.Select("SOURCE = 'IPFERM'");
             //string[] aryCCDBBatchParameters = drCCDBBatchParameters.AsEnumerable().Select(row => row.Field<string>("ABBREV")).ToArray().Select(s => s.ToUpperInvariant()).ToArray();
 
+            DataTable dtEntity = OracleSQL.DataTableQuery("DATATOOLS", "select ENTITY, CATEGORY, ALIAS from MSAT_TIMELY_ENTITY");
+            string[] aryTokens = strRawMessage.Split(); // using terminology in lexical analysis (computer science)
+            string prevItem = "";
+            for (int i = 0; i < aryTokens.Length; i++)
+            {
+                // Suffix stripping
+                string currItem = aryTokens[i].ToUpper();
+                if (currItem.Last() == 'S' || currItem.Last() == '.') { currItem = currItem.Substring(0, currItem.Length - 1); }
+
+                string nextItem = null;
+                if (i < aryTokens.Length - 1) { nextItem = aryTokens[i + 1]; }
+
+                prevItem += currItem;
+
+                // Check if prevItem is an entity
+                if (ParseEntity(prevItem, nextItem, ref Inputs, dtEntity) == true)
+                {
+                    prevItem = "";
+                    continue;
+                }
+
+                // Check if prevItem is an alias
+                DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{prevItem}%'");
+                if (drAlias.Length > 0)
+                {
+                    // THERE MIGHT BE DUPLICATION HERE
+                    foreach (DataRow row in drAlias)
+                    {
+                        string[] aryAlias = row["ALIAS"].ToString().Split(',');
+                        var setAlias = new HashSet<string>(aryAlias);
+                        if (setAlias.Contains(prevItem)) // is a complete alias, ex: "temp"
+                        {
+                            prevItem = row["ENTITY"].ToString();
+                            if (ParseEntity(prevItem, nextItem, ref Inputs, dtEntity) == true)
+                            {
+                                prevItem = "";
+                                break;
+                            }
+                        }
+                        // otherwise prevItem is just part of an alias, ex: "packed cell"
+                        // Don't clear prevItem
+                    }
+                }
+                else // user entered filler words or garbage
+                {
+                    prevItem = "";
+                    // optional: check if currItem is entity/alias?
+                }
+            }
+
             //Define the different lookup arrays
-            string[] aryCCDBBatchParameters = { "PRODUCT", "PROCESS", "SCALE", "TANK", "VESSEL", "EQUIPMENT", "FERM", "BIOREACTOR", "LOT", "RUN", "START TIME", "END TIME", "DURATION", "THAW TIME", "THAW LINE", "STATION", "GCODE" };
-            string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM",
-                                             "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
-            string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
+            //string[] aryCCDBBatchParameters = { "PRODUCT", "PROCESS", "SCALE", "TANK", "VESSEL", "EQUIPMENT", "FERM", "BIOREACTOR", "LOT", "RUN", "START TIME", "END TIME", "DURATION", "THAW TIME", "THAW LINE", "STATION", "GCODE" };
+            //string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM",
+            //                                 "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
+            //string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
             string[] aryIPRecParameters = { "PHASE" };
             string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
             string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
@@ -1044,37 +1094,37 @@ namespace TimelyAPI.Controllers
             string[] StationVerify = { "3410_01", "3410_02", "3410_03", "3410_04", "3410_05", "3410_06", "3410_07", "3410_08", "3810_01", "3810_02", "3810_03", "3810_04", "3810_05", "3810_06", "3810_07", "3810_08", "3810_09", "3810_10", "3810_11", "3810_12" };
 
             //Keyword search inside string
-            int intPrevIndex = int.MaxValue;
-            foreach (string element in aryCCDBBatchParameters)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    //The parameter found in the earliest possible location is designated as the parameter
-                    int intIndex = strRawMessage.ToUpper().IndexOf(element.ToUpper(), 0);
-                    if (intIndex < intPrevIndex)
-                    {
-                        Inputs.CCDB_Batchparameter = element;
-                    }
-                    intPrevIndex = intIndex; // Did you mean to do something with this?
-                }
-            }
+            //int intPrevIndex = int.MaxValue;
+            //foreach (string element in aryCCDBBatchParameters)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        //The parameter found in the earliest possible location is designated as the parameter
+            //        int intIndex = strRawMessage.ToUpper().IndexOf(element.ToUpper(), 0);
+            //        if (intIndex < intPrevIndex)
+            //        {
+            //            Inputs.CCDB_Batchparameter = element;
+            //        }
+            //        intPrevIndex = intIndex; // Did you mean to do something with this?
+            //    }
+            //}
 
-            string stest = StringArraySearch(strRawMessage, aryCCDBSampleParameters);  //Did you mean to do something with this?
+            //string stest = StringArraySearch(strRawMessage, aryCCDBSampleParameters);  //Did you mean to do something with this?
 
-            foreach (string element in aryCCDBSampleParameters)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.CCDB_Sampleparameter = element;
-                }
-            }
-            foreach (string element in aryIPFermParameters)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.IPFERMparameter = element;
-                }
-            }
+            //foreach (string element in aryCCDBSampleParameters)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.CCDB_Sampleparameter = element;
+            //    }
+            //}
+            //foreach (string element in aryIPFermParameters)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.IPFERMparameter = element;
+            //    }
+            //}
             foreach (string element in aryIPRecParameters)
             {
                 if (strRawMessage.ToUpper().Contains(element))
@@ -1430,6 +1480,59 @@ namespace TimelyAPI.Controllers
             session["prevMessage"] = strMessageToStore;
 
             return strResult;
+        }
+
+        private bool ParseEntity(string itemToParse, string nextItem, ref cInputs inputs, DataTable dtEntity)
+        {
+            DataRow[] drEntity = dtEntity.Select($"ENTITY = '{itemToParse}'"); // DataTable string comparison is not case sensitive
+            if (drEntity.Length == 0)
+            {
+                return false;
+            }
+
+            // Get category
+            string[] aryInputCategories = drEntity
+                .AsEnumerable()
+                .Select(row => row.Field<string>("CATEGORY").ToUpper())
+                .ToArray();
+
+            // Store category in corresponding field in Input
+            foreach (string strCategory in aryInputCategories)
+            {
+                switch (strCategory)
+                {
+                    case "CCDB-BATCH":
+                        {
+                            // If this item is followed by a number, means this is not what user is asking for
+                            // Ex: run 160 => user is giving a run number, not asking for it
+                            //TODO: make this simpler...
+                            if (!string.IsNullOrEmpty(nextItem))
+                            {
+                                if (Regex.Match(nextItem, @"\d+").Success == false)
+                                {
+                                    inputs.CCDB_Batchparameter = itemToParse;
+                                }
+                            }
+                            else
+                            {
+                                inputs.CCDB_Batchparameter = itemToParse;
+                            }
+                            break;
+                        }
+                    case "CCDB-SAMPLE":
+                        {
+                            inputs.CCDB_Sampleparameter = itemToParse;
+                            break;
+                        }
+                    case "IP-FERM":
+                        {
+                            inputs.IPFERMparameter = itemToParse;
+                            break;
+                        }
+                }
+            }
+
+            return true;
         }
 
         //Input Class
