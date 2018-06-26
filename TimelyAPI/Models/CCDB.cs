@@ -493,7 +493,8 @@ namespace TimelyAPI.Models
                 {"PRODUCT","PRODUCTID"},
                 {"PROCESS","PRODUCTID"},
                 {"SCALE","SCALEID"}, 
-                {"TANK","ISI.CCBATCHES.FERMID"}, 
+                {"TANK","ISI.CCBATCHES.FERMID"},
+                {"TANKS","ISI.CCBATCHES.FERMID"}, //ADDED
                 {"VESSEL","ISI.CCBATCHES.FERMID"}, 
                 {"EQUIPMENT","ISI.CCBATCHES.FERMID"}, 
                 {"FERM","ISI.CCBATCHES.FERMID"},
@@ -516,7 +517,8 @@ namespace TimelyAPI.Models
                 {"OFFLINE PH","PH"},
                 {"CO2","CO2"},
                 {"CARBON DIOXIDE","CO2"},
-                {" NA","NA"},
+                {" NA","NA"}, 
+                {"NA","NA"}, //ADDED
                 {"SODIUM","NA"},
                 {"NH4","NH4"},
                 {"AMMONIUM","NH4"},
@@ -526,6 +528,7 @@ namespace TimelyAPI.Models
                 {"OSMOLALITY","OSMOLALITY"},
                 {"ASGR","SLOPE"},
                 {"GROWTH RATE","SLOPE"},
+                {"GROWTH","SLOPE"}, //ADDED
                 {"IVPCV","IVPCV"},
                 {"IVCD","IVCD"},
                 {"SAMPLE","CAST((FROM_TZ(CAST(SAMPLETIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)"},
@@ -562,6 +565,7 @@ namespace TimelyAPI.Models
                 {"CO2","mmHg"},
                 {"CARBON DIOXIDE","mmHg"},
                 {" NA","mmol/L"},
+                {"NA","mmol/L"}, //ADDED
                 {"SODIUM","mmol/L"},
                 {"NH4","mmol/L"},
                 {"AMMONIUM","mmol/L"},
@@ -571,6 +575,7 @@ namespace TimelyAPI.Models
                 {"OSMOLALITY","mOsm/kg"},
                 {"ASGR","day-1"},
                 {"GROWTH RATE","day-1"},
+                {"GROWTH","day-1"}, //ADDED
                 {"IVPCV",""},
                 {"IVCD",""},
                 {"SAMPLE",""},
