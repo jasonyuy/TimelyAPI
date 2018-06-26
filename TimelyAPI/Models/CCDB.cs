@@ -516,7 +516,8 @@ namespace TimelyAPI.Models
                 {"OFFLINE PH","PH"},
                 {"CO2","CO2"},
                 {"CARBON DIOXIDE","CO2"},
-                {" NA","NA"},
+                {" NA","NA"}, 
+                {"NA","NA"}, //TODO: get rid of hardcoding..
                 {"SODIUM","NA"},
                 {"NH4","NH4"},
                 {"AMMONIUM","NH4"},
@@ -526,6 +527,7 @@ namespace TimelyAPI.Models
                 {"OSMOLALITY","OSMOLALITY"},
                 {"ASGR","SLOPE"},
                 {"GROWTH RATE","SLOPE"},
+                {"GROWTH","SLOPE"}, //TODO: get rid of hardcoding..
                 {"IVPCV","IVPCV"},
                 {"IVCD","IVCD"},
                 {"SAMPLE","CAST((FROM_TZ(CAST(SAMPLETIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)"},
@@ -562,6 +564,7 @@ namespace TimelyAPI.Models
                 {"CO2","mmHg"},
                 {"CARBON DIOXIDE","mmHg"},
                 {" NA","mmol/L"},
+                {"NA","mmol/L"}, //TODO: get rid of hardcoding..
                 {"SODIUM","mmol/L"},
                 {"NH4","mmol/L"},
                 {"AMMONIUM","mmol/L"},
@@ -571,6 +574,7 @@ namespace TimelyAPI.Models
                 {"OSMOLALITY","mOsm/kg"},
                 {"ASGR","day-1"},
                 {"GROWTH RATE","day-1"},
+                {"GROWTH","day-1"}, //TODO: get rid of hardcoding..
                 {"IVPCV",""},
                 {"IVCD",""},
                 {"SAMPLE",""},

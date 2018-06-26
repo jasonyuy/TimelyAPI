@@ -77,7 +77,8 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage1("What's the current na value for Avastin run 160?", "test", ref session);
             //Assert
-            Assert.AreEqual("The current  NA value for AVASTIN run 160 is 153 mmol/L", strTestResult);
+            //Assert.AreEqual("The current  NA value for AVASTIN run 160 is 153 mmol/L", strTestResult);
+            Assert.AreEqual("The current NA value for AVASTIN run 160 is 153 mmol/L", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -123,7 +124,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("What's the average co2 value for 3136230?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("What's the average co2 value for 3136230?", "test", ref session); // CO2 is the abbrev for CO2 flow (IP-FERM)
             //Assert
             Assert.AreEqual("The average CO2 value for lot 3136230 is 52.90 mmHg", strTestResult);
             Console.WriteLine(strTestResult);
@@ -159,7 +160,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("What's the growth rate for 3136230 at 72 hours?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("What's the growth rate for 3136230 at 72 hours?", "test", ref session); // 'growth' in MSAT_PARAM.
             //Assert
             Assert.AreEqual("The current GROWTH RATE value for lot 3136230 is 0.61 day-1", strTestResult);
             Console.WriteLine(strTestResult);

@@ -1017,51 +1017,50 @@ namespace TimelyAPI.Controllers
             //string[] aryCCDBBatchParameters = drCCDBBatchParameters.AsEnumerable().Select(row => row.Field<string>("ABBREV")).ToArray().Select(s => s.ToUpperInvariant()).ToArray();
 
             DataTable dtEntity = OracleSQL.DataTableQuery("DATATOOLS", "select ENTITY, CATEGORY, ALIAS from MSAT_TIMELY_ENTITY");
-            string[] aryTokens = strRawMessage.Split(); // using terminology in lexical analysis (computer science)
-            string prevItem = "";
+            string[] aryTokens = strRawMessage.Split(); // using the term in lexical analysis
+            string currItem = "";
             for (int i = 0; i < aryTokens.Length; i++)
             {
                 // Suffix stripping
-                string currItem = aryTokens[i].ToUpper();
-                if (currItem.Last() == 'S' || currItem.Last() == '.') { currItem = currItem.Substring(0, currItem.Length - 1); }
+                string token = aryTokens[i].ToUpper();
+                if (token.Last() == 'S' || token.Last() == '.') { token = token.Substring(0, token.Length - 1); }
 
                 string nextItem = null;
                 if (i < aryTokens.Length - 1) { nextItem = aryTokens[i + 1]; }
 
-                prevItem += currItem;
+                if (!string.IsNullOrEmpty(currItem)) { currItem += " "; }
+                currItem += token;
 
-                // Check if prevItem is an entity
-                if (ParseEntity(prevItem, nextItem, ref Inputs, dtEntity) == true)
+                // Check if currItem is an entity
+                if (ParseEntity(currItem, currItem, nextItem, dtEntity, ref Inputs) == true)
                 {
-                    prevItem = "";
+                    currItem = "";
                     continue;
                 }
 
-                // Check if prevItem is an alias
-                DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{prevItem}%'");
+                // Check if currItem is an alias
+                DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{currItem}%' or ENTITY like '%{currItem}%'");
                 if (drAlias.Length > 0)
                 {
                     // THERE MIGHT BE DUPLICATION HERE
                     foreach (DataRow row in drAlias)
                     {
-                        string[] aryAlias = row["ALIAS"].ToString().Split(',');
+                        string[] aryAlias = row["ALIAS"].ToString().ToUpper().Split(',');
                         var setAlias = new HashSet<string>(aryAlias);
-                        if (setAlias.Contains(prevItem)) // is a complete alias, ex: "temp"
+                        if (setAlias.Contains(currItem)) // is a complete alias, ex: "temp"
                         {
-                            prevItem = row["ENTITY"].ToString();
-                            if (ParseEntity(prevItem, nextItem, ref Inputs, dtEntity) == true)
-                            {
-                                prevItem = "";
-                                break;
-                            }
+                            string strEntity = row["ENTITY"].ToString();
+                            ParseEntity(currItem, strEntity, nextItem, dtEntity, ref Inputs);
+                            currItem = "";
+                            break;
                         }
-                        // otherwise prevItem is just part of an alias, ex: "packed cell"
-                        // Don't clear prevItem
+                        // otherwise currItem is just part of an alias, ex: "packed cell"
+                        // Don't clear currItem
                     }
                 }
                 else // user entered filler words or garbage
                 {
-                    prevItem = "";
+                    currItem = "";
                     // optional: check if currItem is entity/alias?
                 }
             }
@@ -1482,9 +1481,9 @@ namespace TimelyAPI.Controllers
             return strResult;
         }
 
-        private bool ParseEntity(string itemToParse, string nextItem, ref cInputs inputs, DataTable dtEntity)
+        private bool ParseEntity(string strRaw, string strEntity, string nextItem, DataTable dtEntity, ref cInputs inputs)
         {
-            DataRow[] drEntity = dtEntity.Select($"ENTITY = '{itemToParse}'"); // DataTable string comparison is not case sensitive
+            DataRow[] drEntity = dtEntity.Select($"ENTITY = '{strEntity}'"); // DataTable string comparison is not case sensitive
             if (drEntity.Length == 0)
             {
                 return false;
@@ -1510,23 +1509,23 @@ namespace TimelyAPI.Controllers
                             {
                                 if (Regex.Match(nextItem, @"\d+").Success == false)
                                 {
-                                    inputs.CCDB_Batchparameter = itemToParse;
+                                    inputs.CCDB_Batchparameter = strRaw;
                                 }
                             }
                             else
                             {
-                                inputs.CCDB_Batchparameter = itemToParse;
+                                inputs.CCDB_Batchparameter = strRaw;
                             }
                             break;
                         }
                     case "CCDB-SAMPLE":
                         {
-                            inputs.CCDB_Sampleparameter = itemToParse;
+                            inputs.CCDB_Sampleparameter = strRaw;
                             break;
                         }
                     case "IP-FERM":
                         {
-                            inputs.IPFERMparameter = itemToParse;
+                            inputs.IPFERMparameter = strEntity;
                             break;
                         }
                 }
