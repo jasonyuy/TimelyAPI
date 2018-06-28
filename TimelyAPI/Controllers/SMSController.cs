@@ -1018,16 +1018,33 @@ namespace TimelyAPI.Controllers
 
             DataTable dtEntity = OracleSQL.DataTableQuery("DATATOOLS", "select ENTITY, CATEGORY, ALIAS from MSAT_TIMELY_ENTITY");
             string[] aryTokens = strRawMessage.Split(); // using the term in lexical analysis
+            var listTokens = new List<string>(aryTokens); 
             string currItem = "";
-            for (int i = 0; i < aryTokens.Length; i++)
+            for (int i = 0; i < listTokens.Count; i++)
             {
-                // Suffix stripping
-                string token = aryTokens[i].ToUpper();
-                if (token.Last() == 'S' || token.Last() == '.') { token = token.Substring(0, token.Length - 1); }
+                // Stemming (suffix stripping)
+                string token = listTokens[i].ToUpper();
+                // Remove period
+                if (token.Last() == '.') { token = token.Substring(0, token.Length - 1); }
+                // Remove suffix
+                if (token.Last() == 'S')
+                {
+                    // Don't change the raw token, ex: DMS actually means something
+                    listTokens.Add(token.Substring(0, token.Length - 1));
+                }
+                else if (token.Length > 1 && token.Substring(token.Length - 2) == "ED")
+                {
+                    // Remove "d", ex: updated
+                    listTokens.Add(token.Substring(0, token.Length - 1));
+                    // Remove "ed", ex: opened
+                    listTokens.Add(token.Substring(0, token.Length - 2));
+                }
 
+                // Peek next item. Used to determine if user is providing "lot xxxx" or asking for lot number
                 string nextItem = null;
-                if (i < aryTokens.Length - 1) { nextItem = aryTokens[i + 1]; }
+                if (i < listTokens.Count - 1) { nextItem = listTokens[i + 1]; }
 
+                // Append to currItem
                 if (!string.IsNullOrEmpty(currItem)) { currItem += " "; }
                 currItem += token;
 
@@ -1039,23 +1056,51 @@ namespace TimelyAPI.Controllers
                 }
 
                 // Check if currItem is an alias
+                bool isPartOfAlias = false;
                 DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{currItem}%' or ENTITY like '%{currItem}%'");
                 if (drAlias.Length > 0)
                 {
                     // THERE MIGHT BE DUPLICATION HERE
                     foreach (DataRow row in drAlias)
                     {
-                        string[] aryAlias = row["ALIAS"].ToString().ToUpper().Split(',');
-                        var setAlias = new HashSet<string>(aryAlias);
-                        if (setAlias.Contains(currItem)) // is a complete alias, ex: "temp"
+                        // Check for complete alias
+                        string[] aryFullAlias = row["ALIAS"].ToString().ToUpper().Split(',');
+                        var setFullAlias = new HashSet<string>(aryFullAlias);
+                        if (setFullAlias.Contains(currItem)) // is a complete alias, ex: "temp"
                         {
+                            // Get entity
                             string strEntity = row["ENTITY"].ToString();
                             ParseEntity(currItem, strEntity, nextItem, dtEntity, ref Inputs);
                             currItem = "";
                             break;
                         }
-                        // otherwise currItem is just part of an alias, ex: "packed cell"
-                        // Don't clear currItem
+
+                        // Check if currItem is part of a multi-word alias/entity, ex: "packed cell"
+                        // Should prevent cases like "are" picking up the entity "parent"
+                        char[] delim = { ' ', ',' };
+                        string[] aryPartOfEntity = row["ENTITY"].ToString().ToUpper().Split(' ');
+                        string[] aryPartOfAlias = row["ALIAS"].ToString().ToUpper().Split(delim);
+                        var setPartOfEntity = new HashSet<string>(aryPartOfEntity);
+                        var setPartOfAlias = new HashSet<string>(aryPartOfAlias);
+                        setPartOfAlias.UnionWith(setPartOfEntity);
+                        string[] aryCurrItem = currItem.Split();
+
+                        foreach (string word in aryCurrItem) // ex: check "packed" and "cell" separately. can't just check "packed cell"
+                        {
+                            if (setPartOfAlias.Contains(word))
+                            {
+                                isPartOfAlias = true;
+                            }
+                            else
+                            {
+                                isPartOfAlias = false;
+                            }
+                        }
+                    }
+
+                    if (isPartOfAlias == false)
+                    {
+                        currItem = "";
                     }
                 }
                 else // user entered filler words or garbage
@@ -1071,21 +1116,21 @@ namespace TimelyAPI.Controllers
             //                                 "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
             //string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
             string[] aryIPRecParameters = { "PHASE" };
-            string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
-            string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
-            string[] aryLIMSParameters = { "TITER", "ASSAY" };
-            string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
-            string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
+            //string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
+            //string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
+            //string[] aryLIMSParameters = { "TITER", "ASSAY" };
+            //string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
+            //string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
             string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" }; // TODO: add other products?
             string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
             string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
             string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
             string[] arySpecial = { "PREDICT", "TITER", "CRASH", "SENTRY", "LMK", "LET ME KNOW", "SNOOZE" };
             string[] aryLimits = { "REACH", "HIT", "WILL BE", "ABOVE", "BELOW", "GREATER", "LESS", "ENABLE", "DISABLE", "ACTIVATE", "DEACTIVATE", "TURN ON", "TURN OFF" };
-            string[] aryTimeFlags = { "WHEN", "TIME" };
+            //string[] aryTimeFlags = { "WHEN", "TIME" };
             string[] aryListFlags = { "LIST", "ALL" };
-            string[] aryStep = { "HARVEST", "PREHARV" };
-            string[] aryDefinitions = { "LOWER ACTION", "LOWER ALERT", "UPPER ALERT", "UPPER ACTION" };
+            //string[] aryStep = { "HARVEST", "PREHARV" };
+            //string[] aryDefinitions = { "LOWER ACTION", "LOWER ALERT", "UPPER ALERT", "UPPER ACTION" };
 
             //Verification Arrays
             string[] EquipmentVerify = { "T271", "T280", "T270", "T281", "T320", "T310", "T240", "T241", "T251", "T250", "T221", "T231", "T232", "T222", "T212", "T201", "T211", "T202", "T1219", "T1220", "T1218", "T1217", "T1215", "T1213", "T7350",
@@ -1131,41 +1176,41 @@ namespace TimelyAPI.Controllers
                     Inputs.IPRECparameter = element;
                 }
             }
-            foreach (string element in aryMESTriggers)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.MESflag = element;
-                }
-            }
-            foreach (string element in aryMESParameters)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.MESparameter = element;
-                }
-            }
-            foreach (string element in aryLIMSParameters)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.LIMSparameter = element;
-                }
-            }
-            foreach (string element in aryTWTriggers)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.TWflag = element;
-                }
-            }
-            foreach (string element in aryTWParameters)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.TWparameter = element;
-                }
-            }
+            //foreach (string element in aryMESTriggers)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.MESflag = element;
+            //    }
+            //}
+            //foreach (string element in aryMESParameters)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.MESparameter = element;
+            //    }
+            //}
+            //foreach (string element in aryLIMSParameters)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.LIMSparameter = element;
+            //    }
+            //}
+            //foreach (string element in aryTWTriggers)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.TWflag = element;
+            //    }
+            //}
+            //foreach (string element in aryTWParameters)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.TWparameter = element;
+            //    }
+            //}
             foreach (string element in aryProducts)
             {
                 if (strRawMessage.ToUpper().Contains(element))
@@ -1221,13 +1266,13 @@ namespace TimelyAPI.Controllers
                     Inputs.limit = element;
                 }
             }
-            foreach (string element in aryTimeFlags)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.timeflag = element;
-                }
-            }
+            //foreach (string element in aryTimeFlags)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.timeflag = element;
+            //    }
+            //}
             foreach (string element in aryListFlags)
             {
                 if (strRawMessage.ToUpper().Contains(element))
@@ -1235,21 +1280,21 @@ namespace TimelyAPI.Controllers
                     Inputs.listflag = element;
                 }
             }
-            foreach (string element in aryStep)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.step = element;
-                }
-            }
-            foreach (string element in aryDefinitions)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.definition = element;
-                    break;
-                }
-            }
+            //foreach (string element in aryStep)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.step = element;
+            //    }
+            //}
+            //foreach (string element in aryDefinitions)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.definition = element;
+            //        break;
+            //    }
+            //}
 
             //If multiple parameters are detected, reconcile
             if (!string.IsNullOrEmpty(Inputs.IPFERMparameter) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
@@ -1378,7 +1423,7 @@ namespace TimelyAPI.Controllers
             {
                 chatStatus = ChatStatus.Specify;
                 strMessageToStore = strRawMessage;
-                strResult = $"I understand you're asking about {Inputs.definition.ToLower()} limit. However, I'm missing either the PRODUCT, VESSEL SIZE, or TARGET PARAMETER (i.e. Temperature) from the information you provided";
+                strResult = $"I understand you're asking about {Inputs.definition.ToLower()}. However, I'm missing either the PRODUCT, VESSEL SIZE, or TARGET PARAMETER (i.e. Temperature) from the information you provided";
             }
             else if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
                 string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
@@ -1498,36 +1543,59 @@ namespace TimelyAPI.Controllers
             // Store category in corresponding field in Input
             foreach (string strCategory in aryInputCategories)
             {
+                // If this item is followed by a number, means this is not what user is asking for
+                // Ex: run 160 => user is giving a run number, not asking for it
+                // Exception: asking about "record 1156462"
+                //TODO: make this simpler?
+                bool shouldCheckNextItem = true;
+                if (strCategory == "TW-TRIGGER" && 
+                    (strEntity == "RECORD" || strEntity == "DMS"))
+                {
+                    shouldCheckNextItem = false;
+                }
+                if (!string.IsNullOrEmpty(nextItem))
+                {
+                    if (Regex.Match(nextItem, @"\d+").Success == true && shouldCheckNextItem)
+                    {
+                        continue;
+                    }
+                }
+
                 switch (strCategory)
                 {
                     case "CCDB-BATCH":
-                        {
-                            // If this item is followed by a number, means this is not what user is asking for
-                            // Ex: run 160 => user is giving a run number, not asking for it
-                            //TODO: make this simpler...
-                            if (!string.IsNullOrEmpty(nextItem))
-                            {
-                                if (Regex.Match(nextItem, @"\d+").Success == false)
-                                {
-                                    inputs.CCDB_Batchparameter = strRaw;
-                                }
-                            }
-                            else
-                            {
-                                inputs.CCDB_Batchparameter = strRaw;
-                            }
-                            break;
-                        }
+                        inputs.CCDB_Batchparameter = strRaw;
+                        break;
                     case "CCDB-SAMPLE":
-                        {
-                            inputs.CCDB_Sampleparameter = strRaw;
-                            break;
-                        }
+                        inputs.CCDB_Sampleparameter = strRaw;
+                        break;
                     case "IP-FERM":
-                        {
-                            inputs.IPFERMparameter = strRaw;
-                            break;
-                        }
+                        inputs.IPFERMparameter = strRaw;
+                        break;
+                    case "MES-TRIGGER":
+                        inputs.MESflag = strRaw;
+                        break;
+                    case "MES":
+                        inputs.MESparameter = strRaw;
+                        break;
+                    case "TIMEFLAG":
+                        inputs.timeflag = strRaw;
+                        break;
+                    case "LIMS":
+                        inputs.LIMSparameter = strRaw;
+                        break;
+                    case "STEP":
+                        inputs.step = strRaw;
+                        break;
+                    case "TW-TRIGGER":
+                        inputs.TWflag = strRaw;
+                        break;
+                    case "TW":
+                        inputs.TWparameter = strRaw;
+                        break;
+                    case "SENTRY-DEFINE":
+                        inputs.definition = strRaw;
+                        break;
                 }
             }
 

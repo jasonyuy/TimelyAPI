@@ -79,6 +79,7 @@ namespace TimelyAPI.Models
             // In order for PADME Service Library to work
             if (strParameter.ToUpper() == "TEMPERATURE") { strParameter = "TEMP"; }
             if (strParameter.ToUpper() == "AIR") { strParameter = "AIR SPARGE"; }
+            if (strParameter.ToUpper() == "O2") { strParameter = "O2 SPARGE"; }
             //TODO: stop hardcoding
 
             //Build the tag query and query IP21 for the tag, store result in strTagResult

@@ -147,7 +147,6 @@ namespace TimelyAPI.Models
         public static string LimitQuery(string strParameter, string strProduct, string strVesselClass, string strLimitType)
         {
             // Initialize variables
-            strLimitType += " LIMIT";
             string strResult = $"Sorry! I can't seem to find the {strLimitType} you requested, can you refine your request and try again?";
             string strUOM = null;
 

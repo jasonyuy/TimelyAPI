@@ -124,7 +124,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("What's the average co2 value for 3136230?", "test", ref session); // CO2 is the abbrev for CO2 flow (IP-FERM)
+            string strTestResult = test.ProcessMessage1("What's the average co2 value for 3136230?", "test", ref session); // for CCDB Sample should be pCO2. CO2 is the abbreviation for CO2 flow in IP-FERM
             //Assert
             Assert.AreEqual("The average CO2 value for lot 3136230 is 52.90 mmHg", strTestResult);
             Console.WriteLine(strTestResult);
@@ -334,7 +334,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage1("What's the upper action limit for temperature for Pola 400L?", "test", ref session);
             //Assert
-            Assert.AreEqual("The upper action limit for TEMP for POLA 400L is 38 Deg C", strTestResult);
+            Assert.AreEqual("The upper action limit for TEMPERATURE for POLA 400L is 38 Deg C", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -502,7 +502,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("What is do2 in 250?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("What is do2 in 250?", "test", ref session); // Need to remove dO2 as an alias!
             string strTestResult2 = test.ProcessMessage1("T250", "test", ref session);
             string strTestResult3 = test.ProcessMessage1("Online", "test", ref session);
             //Assert
