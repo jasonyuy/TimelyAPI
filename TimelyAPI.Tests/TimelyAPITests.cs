@@ -172,9 +172,9 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("When was the most recent sample for t7350?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("When was the most recent sample for lot 3254207?", "test", ref session); //T7350
             //Assert
-            Assert.AreEqual("The current SAMPLE time for vessel T7350 was on 4/30/2018 10:23:00 AM", strTestResult);//5/18/2018 9:03:00 PM
+            Assert.AreEqual("The current SAMPLE time for lot 3254207 was on 5/18/2018 9:03:00 PM", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -184,11 +184,10 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("Can you predict what the glucose value will be for Avastin Run 169 in 2 hours?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("Can you predict what the glucose value will be for lot 3261612 in 2 hours?", "test", ref session);
             //Assert
             double n;
             Assert.IsTrue(double.TryParse(strTestResult, out n));
-            Assert.AreEqual("1", "1");
             Console.WriteLine(strTestResult);
         }
        
@@ -198,7 +197,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("Can you predict when the glucose value for Avastin Run 169 will reach 1.0 g/l?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("Can you predict when the glucose value for lot 3261612 will reach 1.0 g/l?", "test", ref session);
             //Assert
             DateTime n;
             Assert.IsTrue(DateTime.TryParse(strTestResult, out n));
@@ -212,9 +211,10 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("Can you predict what the PCV value will be for Avastin in 2 hours?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("Can you predict what the PCV value will be for lot 3261612 in 2 hours?", "test", ref session);
             //Assert
-            Assert.AreEqual("?????????????????", strTestResult);
+            double n;
+            Assert.IsTrue(double.TryParse(strTestResult, out n));
             Console.WriteLine(strTestResult);
         }
 
@@ -284,9 +284,9 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("What's the max volume for T250?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("What's the max volume for lot 3255913?", "test", ref session); //T250
             //Assert
-            Assert.AreEqual("The max VOLUME value for vessel T250 is 2166.474 L", strTestResult); //2209.342
+            Assert.AreEqual("The max VOLUME value for lot 3255913 is 2209.342 L", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -382,7 +382,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage1("What's the buffer lot for Avastin?", "test", ref session);
             //Assert
-            Assert.AreEqual("The BUFFER LOT for AVASTIN is ", strTestResult);
+            Assert.AreEqual("The BUFFER LOT for AVASTIN is 3212759", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -392,9 +392,9 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage1("What's the buffer pH for station 3410_01?", "test", ref session);
+            string strTestResult = test.ProcessMessage1("What's the buffer pH for lot 3237133?", "test", ref session);//station 3410_01
             //Assert
-            Assert.AreEqual("The BUFFER PH for station 3410_01 is ", strTestResult);
+            Assert.AreEqual("The BUFFER PH for lot 3237133 is 7.1", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
