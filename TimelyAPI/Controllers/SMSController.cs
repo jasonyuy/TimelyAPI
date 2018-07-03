@@ -1555,7 +1555,7 @@ namespace TimelyAPI.Controllers
                 }
                 if (!string.IsNullOrEmpty(nextItem))
                 {
-                    if (Regex.Match(nextItem, @"\d+").Success == true && shouldCheckNextItem)
+                    if (Regex.Match(nextItem, @"^[0-9_]+$").Success == true && shouldCheckNextItem)
                     {
                         continue;
                     }
