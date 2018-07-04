@@ -1056,7 +1056,7 @@ namespace TimelyAPI.Controllers
                 }
 
                 // Check if currItem is an alias
-                bool isPartOfAlias = false;
+                bool isPartOfAlias = true;
                 DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{currItem}%' or ENTITY like '%{currItem}%'");
                 if (drAlias.Length > 0)
                 {
@@ -1087,13 +1087,10 @@ namespace TimelyAPI.Controllers
 
                         foreach (string word in aryCurrItem) // ex: check "packed" and "cell" separately. can't just check "packed cell"
                         {
-                            if (setPartOfAlias.Contains(word))
-                            {
-                                isPartOfAlias = true;
-                            }
-                            else
+                            if (setPartOfAlias.Contains(word) == false)
                             {
                                 isPartOfAlias = false;
+                                break;
                             }
                         }
                     }
