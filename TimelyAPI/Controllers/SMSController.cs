@@ -1016,7 +1016,7 @@ namespace TimelyAPI.Controllers
             //DataRow[] drIPFermParameters = dtParameterDef.Select("SOURCE = 'IPFERM'");
             //string[] aryCCDBBatchParameters = drCCDBBatchParameters.AsEnumerable().Select(row => row.Field<string>("ABBREV")).ToArray().Select(s => s.ToUpperInvariant()).ToArray();
 
-            DataTable dtEntity = OracleSQL.DataTableQuery("DATATOOLS", "select ENTITY, CATEGORY, ALIAS from MSAT_TIMELY_ENTITY");
+            DataTable dtEntity = OracleSQL.DataTableQuery("DATATOOLS", "select ENTITY, CATEGORY, SUBCATEGORY, ALIAS from MSAT_TIMELY_ENTITY");
             string[] aryTokens = strRawMessage.Split(); // using the term in lexical analysis
             var listTokens = new List<string>(aryTokens); 
             string currItem = "";
@@ -1112,7 +1112,7 @@ namespace TimelyAPI.Controllers
             //string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM",
             //                                 "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
             //string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
-            string[] aryIPRecParameters = { "PHASE" };
+            //string[] aryIPRecParameters = { "PHASE" };
             //string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
             //string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
             //string[] aryLIMSParameters = { "TITER", "ASSAY" };
@@ -1166,13 +1166,13 @@ namespace TimelyAPI.Controllers
             //        Inputs.IPFERMparameter = element;
             //    }
             //}
-            foreach (string element in aryIPRecParameters)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.IPRECparameter = element;
-                }
-            }
+            //foreach (string element in aryIPRecParameters)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.IPRECparameter = element;
+            //    }
+            //}
             //foreach (string element in aryMESTriggers)
             //{
             //    if (strRawMessage.ToUpper().Contains(element))
@@ -1534,7 +1534,10 @@ namespace TimelyAPI.Controllers
             // Get category
             string[] aryInputCategories = drEntity
                 .AsEnumerable()
-                .Select(row => row.Field<string>("CATEGORY").ToUpper())
+                .Select(row => (row.Field<string>("CATEGORY") 
+                    + ((row.Field<string>("SUBCATEGORY") == null) ? "" : "-") 
+                    + row.Field<string>("SUBCATEGORY"))
+                    .ToUpper())
                 .ToArray();
 
             // Store category in corresponding field in Input
@@ -1566,8 +1569,11 @@ namespace TimelyAPI.Controllers
                     case "CCDB-SAMPLE":
                         inputs.CCDB_Sampleparameter = strRaw;
                         break;
-                    case "IP-FERM":
+                    case "IP21-FERM":
                         inputs.IPFERMparameter = strRaw;
+                        break;
+                    case "IP21-REC":
+                        inputs.IPRECparameter = strRaw;
                         break;
                     case "MES-TRIGGER":
                         inputs.MESflag = strRaw;
