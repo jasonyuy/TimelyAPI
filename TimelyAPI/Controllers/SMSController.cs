@@ -1103,7 +1103,7 @@ namespace TimelyAPI.Controllers
                 else // user entered filler words or garbage
                 {
                     currItem = "";
-                    // optional: check if currItem is entity/alias?
+                    // optional: check if token is entity/alias?
                 }
             }
 
@@ -1118,8 +1118,8 @@ namespace TimelyAPI.Controllers
             //string[] aryLIMSParameters = { "TITER", "ASSAY" };
             //string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
             //string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
-            string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" }; // TODO: add other products?
-            string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
+            //string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" }; // TODO: add other products?
+            //string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
             string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
             string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
             string[] arySpecial = { "PREDICT", "TITER", "CRASH", "SENTRY", "LMK", "LET ME KNOW", "SNOOZE" };
@@ -1208,33 +1208,33 @@ namespace TimelyAPI.Controllers
             //        Inputs.TWparameter = element;
             //    }
             //}
-            foreach (string element in aryProducts)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.product = element;
-                }
-            }
-            if (string.IsNullOrEmpty(Inputs.product))
-            {
-                // Not hardcoded, search again in database
-                GetProductFromOracle(ref aryProducts);
-                foreach (string element in aryProducts)
-                {
-                    if (strRawMessage.ToUpper().Contains(element))
-                    {
-                        Inputs.product = element;
-                        break;
-                    }
-                }
-            }
-            foreach (string element in aryVesselClass)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.vesselclass = element;
-                }
-            }
+            //foreach (string element in aryProducts)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.product = element;
+            //    }
+            //}
+            //if (string.IsNullOrEmpty(Inputs.product))
+            //{
+            //    // Not hardcoded, search again in database
+            //    GetProductFromOracle(ref aryProducts);
+            //    foreach (string element in aryProducts)
+            //    {
+            //        if (strRawMessage.ToUpper().Contains(element))
+            //        {
+            //            Inputs.product = element;
+            //            break;
+            //        }
+            //    }
+            //}
+            //foreach (string element in aryVesselClass)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.vesselclass = element;
+            //    }
+            //}
             foreach (string element in aryEquipment)
             {
                 if (strRawMessage.ToUpper().Contains(element))
@@ -1598,6 +1598,12 @@ namespace TimelyAPI.Controllers
                         break;
                     case "SENTRY-DEFINE":
                         inputs.definition = strRaw;
+                        break;
+                    case "PROCESS":
+                        inputs.product = strRaw;
+                        break;
+                    case "AREA-VESSEL":
+                        inputs.vesselclass = strRaw;
                         break;
                 }
             }
