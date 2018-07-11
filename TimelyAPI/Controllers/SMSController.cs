@@ -12,6 +12,7 @@ using Twilio.TwiML;
 using Twilio.TwiML.Mvc;
 using TimelyAPI.Models;
 using PADMEServiceLibrary;
+using Porter2Stemmer;
 
 namespace TimelyAPI.Controllers
 {
@@ -226,7 +227,7 @@ namespace TimelyAPI.Controllers
 
         //    return strResult;
         //}
-        public struct KnockKnockJoke
+        public class KnockKnockJoke
         {
             public string Bridge { get; }
             public string Punchline { get; }
@@ -237,56 +238,6 @@ namespace TimelyAPI.Controllers
                 Punchline = punchline;
             }
         }
-        /// <summary>
-        /// enum to show conversation status.
-        /// </summary>
-        enum ChatStatus
-        {
-            /// <summary>
-            /// User has not started the conversation.
-            /// </summary>
-            None,
-            /// <summary>
-            /// The bridge of a knock-knock joke.
-            /// </summary>
-            Bridge,
-            /// <summary>
-            /// Punchline of a knock-knock joke.
-            /// </summary>
-            Punchline,
-            /// <summary>
-            /// Unknown equipment, should ask user for equipment. 
-            /// </summary>
-            UnkEquipment,
-            /// <summary>
-            /// Unknown station, should ask user for station.
-            /// </summary>
-            UnkStation,
-            /// <summary>
-            /// Should ask user to specify offline, online, or media pH.
-            /// </summary>
-            Specify_pH,
-            /// <summary>
-            /// Should ask user to specify offline or online dO2.
-            /// </summary>
-            Specify_dO2,
-            /// <summary>
-            /// Should ask user to specify which titer result.
-            /// </summary>
-            SpecifyTiter,
-            /// <summary>
-            /// Missing batch identifier. 
-            /// </summary>
-            UnkBatch,
-            /// <summary>
-            /// Should ask user to specify target paramter.
-            /// </summary>
-            SpecifyTarget,
-            /// <summary>
-            /// Generic enum that means user should specify something.
-            /// </summary>
-            Specify,
-        };
         /// <summary>
         /// Changes made:
         /// 1. Use else-if statements to omit the rest of checks once we've generated a response (30ms -> 2ms)
@@ -1018,91 +969,160 @@ namespace TimelyAPI.Controllers
 
             DataTable dtEntity = OracleSQL.DataTableQuery("DATATOOLS", "select ENTITY, CATEGORY, SUBCATEGORY, ALIAS from MSAT_TIMELY_ENTITY");
             string[] aryTokens = strRawMessage.Split(); // using the term in lexical analysis
-            var listTokens = new List<string>(aryTokens); 
-            string currItem = "";
+            var listTokens = new List<string>(aryTokens);
+            //string currItem = "";
+            var currItem = new StemmedWord();
+            //var currItem = new List<StemmedWord>();
             for (int i = 0; i < listTokens.Count; i++)
             {
-                // Stemming (suffix stripping)
+                //// Stemming (suffix stripping)
                 string token = listTokens[i].ToUpper();
-                // Remove period
-                if (token.Last() == '.') { token = token.Substring(0, token.Length - 1); }
-                // Remove suffix
-                if (token.Last() == 'S')
-                {
-                    // Don't change the raw token, ex: DMS actually means something
-                    listTokens.Add(token.Substring(0, token.Length - 1));
-                }
-                else if (token.Length > 1 && token.Substring(token.Length - 2) == "ED")
-                {
-                    // Remove "d", ex: updated
-                    listTokens.Add(token.Substring(0, token.Length - 1));
-                    // Remove "ed", ex: opened
-                    listTokens.Add(token.Substring(0, token.Length - 2));
-                }
+                //// Remove period
+                //if (token.Last() == '.') { token = token.Substring(0, token.Length - 1); }
+                //// Remove suffix
+                //if (token.Last() == 'S')
+                //{
+                //    // Don't change the raw token, ex: DMS actually means something
+                //    listTokens.Add(token.Substring(0, token.Length - 1));
+                //}
+                //else if (token.Length > 1 && token.Substring(token.Length - 2) == "ED")
+                //{
+                //    // Remove "d", ex: updated
+                //    listTokens.Add(token.Substring(0, token.Length - 1));
+                //    // Remove "ed", ex: opened
+                //    listTokens.Add(token.Substring(0, token.Length - 2));
+                //}
+
+                // Stemming (Porter's algorithm)
+                var stemmer = new EnglishPorter2Stemmer();
+                var stemmedToken = stemmer.Stem(token);
 
                 // Peek next item. Used to determine if user is providing "lot xxxx" or asking for lot number
                 string nextItem = null;
                 if (i < listTokens.Count - 1) { nextItem = listTokens[i + 1]; }
 
                 // Append to currItem
-                if (!string.IsNullOrEmpty(currItem)) { currItem += " "; }
-                currItem += token;
+                //if (!string.IsNullOrEmpty(currItem)) { currItem += " "; }
+                //currItem += stemmedToken;
+                if (!string.IsNullOrEmpty(currItem.Value))
+                {
+                    string value = currItem.Value + " " + stemmedToken.Value;
+                    string unstemmed = currItem.Unstemmed + " " + stemmedToken.Unstemmed;
+                    currItem = new StemmedWord(value, unstemmed);
+                }
+                else
+                {
+                    currItem = new StemmedWord(stemmedToken.Value, stemmedToken.Unstemmed);
+                }
 
                 // Check if currItem is an entity
-                if (ParseEntity(currItem, currItem, nextItem, dtEntity, ref Inputs) == true)
+                //if (ParseEntity(currItem, currItem, nextItem, dtEntity, ref Inputs) == true)
+                //{
+                //    currItem = "";
+                //    continue;
+                //}
+                if (ParseEntity(currItem.Unstemmed, currItem.Value, nextItem, dtEntity, ref Inputs) == true)
                 {
-                    currItem = "";
+                    currItem = new StemmedWord(); //TODO: maybe not the best way to clear
                     continue;
                 }
 
                 // Check if currItem is an alias
                 bool isPartOfAlias = true;
-                DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{currItem}%' or ENTITY like '%{currItem}%'");
+                DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{currItem.Value}%' or ENTITY like '%{currItem.Value}%'");
                 if (drAlias.Length > 0)
                 {
-                    // THERE MIGHT BE DUPLICATION HERE
                     foreach (DataRow row in drAlias)
                     {
                         // Check for complete alias
                         string[] aryFullAlias = row["ALIAS"].ToString().ToUpper().Split(',');
-                        var setFullAlias = new HashSet<string>(aryFullAlias);
-                        if (setFullAlias.Contains(currItem)) // is a complete alias, ex: "temp"
-                        {
-                            // Get entity
-                            string strEntity = row["ENTITY"].ToString();
-                            ParseEntity(currItem, strEntity, nextItem, dtEntity, ref Inputs);
-                            currItem = "";
-                            break;
-                        }
+                        //var setFullAlias = new HashSet<string>(aryFullAlias);
+                        //if (setFullAlias.Contains(currItem)) // is a complete alias, ex: "temp"
+                        //{
+                        //    // Get entity
+                        //    string strEntity = row["ENTITY"].ToString();
+                        //    ParseEntity(currItem, strEntity, nextItem, dtEntity, ref Inputs);
+                        //    currItem = "";
+                        //    break;
+                        //}
 
-                        // Check if currItem is part of a multi-word alias/entity, ex: "packed cell"
-                        // Should prevent cases like "are" picking up the entity "parent"
-                        char[] delim = { ' ', ',' };
-                        string[] aryPartOfEntity = row["ENTITY"].ToString().ToUpper().Split(' ');
-                        string[] aryPartOfAlias = row["ALIAS"].ToString().ToUpper().Split(delim);
-                        var setPartOfEntity = new HashSet<string>(aryPartOfEntity);
-                        var setPartOfAlias = new HashSet<string>(aryPartOfAlias);
-                        setPartOfAlias.UnionWith(setPartOfEntity);
-                        string[] aryCurrItem = currItem.Split();
-
-                        foreach (string word in aryCurrItem) // ex: check "packed" and "cell" separately. can't just check "packed cell"
+                        // since we are looping over to stem (linear time), no need to convert to a set
+                        foreach (string strAlias in aryFullAlias)
                         {
-                            if (setPartOfAlias.Contains(word) == false)
+                            if (stemmer.Stem(strAlias).Value == currItem.Value)
                             {
-                                isPartOfAlias = false;
+                                string strEntity = row["ENTITY"].ToString();
+                                ParseEntity(currItem.Unstemmed, strEntity, nextItem, dtEntity, ref Inputs);
+                                currItem = new StemmedWord();
                                 break;
                             }
+                        }
+
+                        if (!string.IsNullOrEmpty(currItem.Value)) //TODO: improve this later
+                        {
+                            // Check if currItem is part of a multi-word alias/entity, ex: "packed cell"
+                            // Should prevent cases like "are" picking up the entity "parent"
+                            char[] delim = { ' ', ',' };
+                            string[] aryPartOfEntity = row["ENTITY"].ToString().ToUpper().Split(' ');
+                            string[] aryPartOfAlias = row["ALIAS"].ToString().ToUpper().Split(delim);
+                            for (int j = 0; j < aryPartOfEntity.Length; j++)
+                            {
+                                aryPartOfEntity[j] = stemmer.Stem(aryPartOfEntity[j]).Value;
+                            }
+                            for (int j = 0; j < aryPartOfAlias.Length; j++)
+                            {
+                                aryPartOfAlias[j] = stemmer.Stem(aryPartOfAlias[j]).Value;
+                            }
+                            var setPartOfEntity = new HashSet<string>(aryPartOfEntity);
+                            var setPartOfAlias = new HashSet<string>(aryPartOfAlias);
+                            setPartOfAlias.UnionWith(setPartOfEntity);
+                            string[] aryCurrItem = currItem.Value.Split();
+
+                            foreach (string word in aryCurrItem) // ex: check "packed" and "cell" separately. can't just check "packed cell"
+                            {
+                                if (setPartOfAlias.Contains(word) == false)
+                                {
+                                    isPartOfAlias = false;
+                                    break;
+                                }
+                            }
+                            //string[] aryCurrItem = currItem.Value.Split();
+                            //for (int j = 0; j < aryCurrItem.Length; j++)
+                            //{
+                            //    bool isPartOfAlias = false;
+                            //    foreach (string strPartOfEntity in aryPartOfEntity)
+                            //    {
+                            //        if (stemmer.Stem(strPartOfEntity).Value == aryCurrItem[j])
+                            //        {
+                            //            isPartOfAlias = true;
+                            //        }
+                            //    }
+                            //    foreach (string strPartOfAlias in aryPartOfAlias)
+                            //    {
+                            //        if (stemmer.Stem(strPartOfAlias).Value == aryCurrItem[j])
+                            //        {
+                            //            isPartOfAlias = true;
+                            //        }
+                            //    }
+
+                            //    if (isPartOfAlias == false)
+                            //    {
+                            //        currItem = new StemmedWord();
+                            //    }
+                            //}
                         }
                     }
 
                     if (isPartOfAlias == false)
                     {
-                        currItem = "";
+                        //currItem = "";
+                        currItem = new StemmedWord();
                     }
                 }
                 else // user entered filler words or garbage
                 {
-                    currItem = "";
+                    //currItem = "";
+                    currItem = new StemmedWord();
                     // optional: check if token is entity/alias?
                 }
             }
