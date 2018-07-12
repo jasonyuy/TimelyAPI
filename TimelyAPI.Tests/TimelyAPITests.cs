@@ -184,7 +184,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage("Can you predict what the glucose value will be for lot 3260378 in 2 hours?", "test", ref session);
+            string strTestResult = test.ProcessMessage("Can you predict what the glucose value will be for lot 3262626 in 2 hours?", "test", ref session);
             //Assert
             double n;
             Assert.IsTrue(double.TryParse(strTestResult, out n));
@@ -197,7 +197,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage("Can you predict when the glucose value for lot 3260378 will reach 1.0 g/l?", "test", ref session);
+            string strTestResult = test.ProcessMessage("Can you predict when the glucose value for lot 3262626 will reach 1.0 g/l?", "test", ref session);
             //Assert
             DateTime n;
             Assert.IsTrue(DateTime.TryParse(strTestResult, out n));
@@ -211,7 +211,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.ProcessMessage("Can you predict what the PCV value will be for lot 3260378 in 2 hours?", "test", ref session);
+            string strTestResult = test.ProcessMessage("Can you predict what the PCV value will be for lot 3262626 in 2 hours?", "test", ref session);
             //Assert
             double n;
             Assert.IsTrue(double.TryParse(strTestResult, out n));
