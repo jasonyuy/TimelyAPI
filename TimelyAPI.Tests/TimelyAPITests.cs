@@ -298,7 +298,7 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage("What's the maximum o2 sparge for T271 over the past 24 hours?", "test", ref session);
             //Assert
-            Assert.IsTrue(strTestResult.ToUpper().Contains("MAX O2 SPARGE"));
+            Assert.IsTrue(strTestResult.ToUpper().Contains("MAXIMUM O2 SPARGE"));
             Console.WriteLine(strTestResult);
         }
 

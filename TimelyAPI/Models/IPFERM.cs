@@ -103,10 +103,12 @@ namespace TimelyAPI.Models
                         strSortOrder = " order by ts desc";
                         break;
                     case "MIN":
+                    case "MINIMUM":
                         strParameterField = "MIN(" + strParameterField + ")";
                         strSortOrder = null;
                         break;
                     case "MAX":
+                    case "MAXIMUM":
                         strParameterField = "MAX(" + strParameterField + ")";
                         strSortOrder = null;
                         break;

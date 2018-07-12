@@ -1053,12 +1053,12 @@ namespace TimelyAPI.Controllers
             //string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
             //string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" }; // TODO: add other products?
             //string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
-            string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
-            string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
-            string[] arySpecial = { "PREDICT", "TITER", "CRASH", "SENTRY", "LMK", "LET ME KNOW", "SNOOZE" };
-            string[] aryLimits = { "REACH", "HIT", "WILL BE", "ABOVE", "BELOW", "GREATER", "LESS", "ENABLE", "DISABLE", "ACTIVATE", "DEACTIVATE", "TURN ON", "TURN OFF" };
+            //string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
+            //string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
+            //string[] arySpecial = { "PREDICT", "TITER", "CRASH", "SENTRY", "LMK", "LET ME KNOW", "SNOOZE" };
+            //string[] aryLimits = { "REACH", "HIT", "WILL BE", "ABOVE", "BELOW", "GREATER", "LESS", "ENABLE", "DISABLE", "ACTIVATE", "DEACTIVATE", "TURN ON", "TURN OFF" };
             //string[] aryTimeFlags = { "WHEN", "TIME" };
-            string[] aryListFlags = { "LIST", "ALL" };
+            //string[] aryListFlags = { "LIST", "ALL" };
             //string[] aryStep = { "HARVEST", "PREHARV" };
             //string[] aryDefinitions = { "LOWER ACTION", "LOWER ALERT", "UPPER ALERT", "UPPER ACTION" };
 
@@ -1168,34 +1168,34 @@ namespace TimelyAPI.Controllers
             //        Inputs.vesselclass = element;
             //    }
             //}
-            foreach (string element in aryEquipment)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.equipment = element;
-                }
-            }
-            foreach (string element in aryModifiers)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.modifier = element;
-                }
-            }
-            foreach (string element in arySpecial)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.special = element;
-                }
-            }
-            foreach (string element in aryLimits)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.limit = element;
-                }
-            }
+            //foreach (string element in aryEquipment)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.equipment = element;
+            //    }
+            //}
+            //foreach (string element in aryModifiers)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.modifier = element;
+            //    }
+            //}
+            //foreach (string element in arySpecial)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.special = element;
+            //    }
+            //}
+            //foreach (string element in aryLimits)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.limit = element;
+            //    }
+            //}
             //foreach (string element in aryTimeFlags)
             //{
             //    if (strRawMessage.ToUpper().Contains(element))
@@ -1203,13 +1203,13 @@ namespace TimelyAPI.Controllers
             //        Inputs.timeflag = element;
             //    }
             //}
-            foreach (string element in aryListFlags)
-            {
-                if (strRawMessage.ToUpper().Contains(element))
-                {
-                    Inputs.listflag = element;
-                }
-            }
+            //foreach (string element in aryListFlags)
+            //{
+            //    if (strRawMessage.ToUpper().Contains(element))
+            //    {
+            //        Inputs.listflag = element;
+            //    }
+            //}
             //foreach (string element in aryStep)
             //{
             //    if (strRawMessage.ToUpper().Contains(element))
@@ -1514,14 +1514,8 @@ namespace TimelyAPI.Controllers
                     case "MES":
                         inputs.MESparameter = strRaw;
                         break;
-                    case "TIMEFLAG":
-                        inputs.timeflag = strRaw;
-                        break;
                     case "LIMS":
                         inputs.LIMSparameter = strRaw;
-                        break;
-                    case "STEP":
-                        inputs.step = strRaw;
                         break;
                     case "TW-TRIGGER":
                         inputs.TWflag = strRaw;
@@ -1529,14 +1523,35 @@ namespace TimelyAPI.Controllers
                     case "TW":
                         inputs.TWparameter = strRaw;
                         break;
-                    case "SENTRY-DEFINE":
-                        inputs.definition = strRaw;
-                        break;
                     case "PROCESS":
                         inputs.product = strRaw;
                         break;
                     case "AREA-VESSEL":
                         inputs.vesselclass = strRaw;
+                        break;
+                    case "EQUIPMENT":
+                        inputs.equipment = strRaw;
+                        break;
+                    case "MODIFIER":
+                        inputs.modifier = strRaw;
+                        break;
+                    case "SPECIAL":
+                        inputs.special = strRaw;
+                        break;
+                    case "LIMIT":
+                        inputs.limit = strRaw;
+                        break;
+                    case "TIMEFLAG":
+                        inputs.timeflag = strRaw;
+                        break;
+                    case "LISTFLAG":
+                        inputs.listflag = strRaw;
+                        break;
+                    case "STEP":
+                        inputs.step = strRaw;
+                        break;
+                    case "SENTRY-DEFINE":
+                        inputs.definition = strRaw;
                         break;
                 }
             }
