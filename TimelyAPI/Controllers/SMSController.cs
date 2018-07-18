@@ -968,18 +968,16 @@ namespace TimelyAPI.Controllers
 
             DataTable dtEntity = OracleSQL.DataTableQuery("DATATOOLS", "select ENTITY, CATEGORY, SUBCATEGORY, ALIAS from MSAT_TIMELY_ENTITY");
             string[] aryTokens = strRawMessage.Split(); // using the term in lexical analysis
-            var listTokens = new List<string>(aryTokens);
             string currItem = "";
-            for (int i = 0; i < listTokens.Count; i++)
+            for (int i = 0; i < aryTokens.Length; i++)
             {
                 // Peek next item. Used to determine if user is providing "lot xxxx" or asking for lot number
                 string nextItem = null;
-                if (i < listTokens.Count - 1) { nextItem = listTokens[i + 1]; }
+                if (i < aryTokens.Length - 1) { nextItem = aryTokens[i + 1]; }
 
                 // Append to currItem
                 if (!string.IsNullOrEmpty(currItem)) { currItem += " "; }
-                currItem += listTokens[i].ToUpper();
-
+                currItem += aryTokens[i].ToUpper();
 
                 // Check if currItem is an entity
                 if (ParseEntity(currItem, currItem, nextItem, dtEntity, ref Inputs) == true)
@@ -989,7 +987,7 @@ namespace TimelyAPI.Controllers
                 }
 
                 // Check if currItem is an alias
-                bool isPartOfAlias = true;
+                bool isPartOfAlias = false;
                 DataRow[] drAlias = dtEntity.Select($"ALIAS like '%{currItem}%' or ENTITY like '%{currItem}%'");
                 if (drAlias.Length > 0)
                 {
@@ -1008,22 +1006,12 @@ namespace TimelyAPI.Controllers
                         }
 
                         // Check if currItem is part of a multi-word alias/entity, ex: "packed cell"
-                        // Should prevent cases like "are" picking up the entity "parent"
-                        char[] delim = { ' ', ',' };
-                        string[] aryPartOfEntity = row["ENTITY"].ToString().ToUpper().Split(' ');
-                        string[] aryPartOfAlias = row["ALIAS"].ToString().ToUpper().Split(delim);
-                        var setPartOfEntity = new HashSet<string>(aryPartOfEntity);
-                        var setPartOfAlias = new HashSet<string>(aryPartOfAlias);
-                        setPartOfAlias.UnionWith(setPartOfEntity);
-                        string[] aryCurrItem = currItem.Split();
-
-                        foreach (string word in aryCurrItem) // ex: check "packed" and "cell" separately. can't just check "packed cell"
+                        // Jason's add-a-whitespace trick should prevent cases like "are" picking up the entity "parent"
+                        string strEntityWithSpace = " " + row["ENTITY"].ToString().ToUpper() + " ";
+                        string strAliasWithSpace = " " + row["ALIAS"].ToString().ToUpper().Replace(',', ' ') + " ";
+                        if (strEntityWithSpace.Contains(" " + currItem + " ") || strAliasWithSpace.Contains(" " + currItem + " "))
                         {
-                            if (setPartOfAlias.Contains(word) == false)
-                            {
-                                isPartOfAlias = false;
-                                break;
-                            }
+                            isPartOfAlias = true;
                         }
                     }
 
@@ -1041,26 +1029,7 @@ namespace TimelyAPI.Controllers
             }
 
             //Define the different lookup arrays
-            //string[] aryCCDBBatchParameters = { "PRODUCT", "PROCESS", "SCALE", "TANK", "VESSEL", "EQUIPMENT", "FERM", "BIOREACTOR", "LOT", "RUN", "START TIME", "END TIME", "DURATION", "THAW TIME", "THAW LINE", "STATION", "GCODE" };
-            //string[] aryCCDBSampleParameters = { "PCV", "VIABILITY", "VIABLE CELL DENSITY", "VCD", "GLUCOSE", "LACTATE", "OFFLINE PH", "OFFLINE DO2", "OXYGEN", "CO2", "CARBON DIOXIDE", " NA", "SODIUM",
-            //                                 "NH4", "AMMONIUM", "OSMO", "OSMOLALITY", "ASGR", "GROWTH RATE", "IVPCV", "IVCD", "SAMPLE", "COUNT" };
-            //string[] aryIPFermParameters = { "AIR SPARGE", "AIR FLOW", "O2 SPARGE", "O2 FLOW", "ONLINE DO2", "ONLINE PH", "BASE", "CO2 FLOW", "TEMP", "JACKET TEMP", "LEVEL", "VOLUME", "AGITATION", "PRESSURE" };
-            //string[] aryIPRecParameters = { "PHASE" };
-            //string[] aryMESTriggers = { "BATCH FEED", "MEDIA", "BUFFER", "CONSUME", "PRODUCE" };
-            //string[] aryMESParameters = { "LOT", "PH", "OSMO", "VOLUME", "TEMP", "MIX", "CONDUCTIVITY" };
-            //string[] aryLIMSParameters = { "TITER", "ASSAY" };
-            //string[] aryTWTriggers = { "RECORD", "CR", "DMS", "CAPA", "TRACKWISE", "ITEM" };
-            //string[] aryTWParameters = { "ASSIGNED", "STATUS", "PARENT", "STATE", "DUE", "CLASS", "TYPE", "SUBTYPE", "DESCRIPTION", "DETAIL", "DUE", "ME", "MY", "UPDATE", "CREATE", "OPEN", "CLOSE" };
-            //string[] aryProducts = { "AVASTIN", "TNKASE", "PULMOZYME", "PULMOZYME V1.1" }; // TODO: add other products?
-            //string[] aryVesselClass = { "20L", "80L", "400L", "2KL", "12KL", "20 L", "80 L", "400 L", "2 KL", "12 KL" };
-            //string[] aryEquipment = { "TANK", "EQUIPMENT", "FERM", "BIOREACTOR" };
-            //string[] aryModifiers = { "INITIAL", "FINAL", "FIRST", "LAST", "CURRENT", "PREVIOUS", "MIN", "MAX", "LOWEST", "HIGHEST", "AVERAGE", "PEAK", "RANGE", "FULL", "DEFAULT", "MINIMAL" };
-            //string[] arySpecial = { "PREDICT", "TITER", "CRASH", "SENTRY", "LMK", "LET ME KNOW", "SNOOZE" };
-            //string[] aryLimits = { "REACH", "HIT", "WILL BE", "ABOVE", "BELOW", "GREATER", "LESS", "ENABLE", "DISABLE", "ACTIVATE", "DEACTIVATE", "TURN ON", "TURN OFF" };
-            //string[] aryTimeFlags = { "WHEN", "TIME" };
-            //string[] aryListFlags = { "LIST", "ALL" };
-            //string[] aryStep = { "HARVEST", "PREHARV" };
-            //string[] aryDefinitions = { "LOWER ACTION", "LOWER ALERT", "UPPER ALERT", "UPPER ACTION" };
+
 
             //Verification Arrays
             string[] EquipmentVerify = { "T271", "T280", "T270", "T281", "T320", "T310", "T240", "T241", "T251", "T250", "T221", "T231", "T232", "T222", "T212", "T201", "T211", "T202", "T1219", "T1220", "T1218", "T1217", "T1215", "T1213", "T7350",
@@ -1068,163 +1037,7 @@ namespace TimelyAPI.Controllers
             string[] StationVerify = { "3410_01", "3410_02", "3410_03", "3410_04", "3410_05", "3410_06", "3410_07", "3410_08", "3810_01", "3810_02", "3810_03", "3810_04", "3810_05", "3810_06", "3810_07", "3810_08", "3810_09", "3810_10", "3810_11", "3810_12" };
 
             //Keyword search inside string
-            //int intPrevIndex = int.MaxValue;
-            //foreach (string element in aryCCDBBatchParameters)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        //The parameter found in the earliest possible location is designated as the parameter
-            //        int intIndex = strRawMessage.ToUpper().IndexOf(element.ToUpper(), 0);
-            //        if (intIndex < intPrevIndex)
-            //        {
-            //            Inputs.CCDB_Batchparameter = element;
-            //        }
-            //        intPrevIndex = intIndex; // Did you mean to do something with this?
-            //    }
-            //}
 
-            //string stest = StringArraySearch(strRawMessage, aryCCDBSampleParameters);  //Did you mean to do something with this?
-
-            //foreach (string element in aryCCDBSampleParameters)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.CCDB_Sampleparameter = element;
-            //    }
-            //}
-            //foreach (string element in aryIPFermParameters)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.IPFERMparameter = element;
-            //    }
-            //}
-            //foreach (string element in aryIPRecParameters)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.IPRECparameter = element;
-            //    }
-            //}
-            //foreach (string element in aryMESTriggers)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.MESflag = element;
-            //    }
-            //}
-            //foreach (string element in aryMESParameters)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.MESparameter = element;
-            //    }
-            //}
-            //foreach (string element in aryLIMSParameters)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.LIMSparameter = element;
-            //    }
-            //}
-            //foreach (string element in aryTWTriggers)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.TWflag = element;
-            //    }
-            //}
-            //foreach (string element in aryTWParameters)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.TWparameter = element;
-            //    }
-            //}
-            //foreach (string element in aryProducts)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.product = element;
-            //    }
-            //}
-            //if (string.IsNullOrEmpty(Inputs.product))
-            //{
-            //    // Not hardcoded, search again in database
-            //    GetProductFromOracle(ref aryProducts);
-            //    foreach (string element in aryProducts)
-            //    {
-            //        if (strRawMessage.ToUpper().Contains(element))
-            //        {
-            //            Inputs.product = element;
-            //            break;
-            //        }
-            //    }
-            //}
-            //foreach (string element in aryVesselClass)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.vesselclass = element;
-            //    }
-            //}
-            //foreach (string element in aryEquipment)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.equipment = element;
-            //    }
-            //}
-            //foreach (string element in aryModifiers)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.modifier = element;
-            //    }
-            //}
-            //foreach (string element in arySpecial)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.special = element;
-            //    }
-            //}
-            //foreach (string element in aryLimits)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.limit = element;
-            //    }
-            //}
-            //foreach (string element in aryTimeFlags)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.timeflag = element;
-            //    }
-            //}
-            //foreach (string element in aryListFlags)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.listflag = element;
-            //    }
-            //}
-            //foreach (string element in aryStep)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.step = element;
-            //    }
-            //}
-            //foreach (string element in aryDefinitions)
-            //{
-            //    if (strRawMessage.ToUpper().Contains(element))
-            //    {
-            //        Inputs.definition = element;
-            //        break;
-            //    }
-            //}
 
             //If multiple parameters are detected, reconcile
             if (!string.IsNullOrEmpty(Inputs.IPFERMparameter) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
@@ -1478,17 +1291,13 @@ namespace TimelyAPI.Controllers
             {
                 // If this item is followed by a number, means this is not what user is asking for
                 // Ex: run 160 => user is giving a run number, not asking for it
-                // Exception: asking about "record 1156462"
-                //TODO: make this simpler?
-                bool shouldCheckNextItem = true;
-                if (strCategory == "TW-TRIGGER" && 
-                    (strEntity == "RECORD" || strEntity == "DMS"))
-                {
-                    shouldCheckNextItem = false;
-                }
                 if (!string.IsNullOrEmpty(nextItem))
                 {
-                    if (Regex.Match(nextItem, @"^[0-9_]+$").Success == true && shouldCheckNextItem)
+                    if (strRaw == "LOT" && Regex.Match(nextItem, @"^[0-9_]+$").Success == true)
+                    {
+                        continue;
+                    }
+                    if (strRaw == "RUN" && Regex.Match(nextItem, @"^[0-9_]+$").Success == true)
                     {
                         continue;
                     }
@@ -1625,34 +1434,34 @@ namespace TimelyAPI.Controllers
             return strValue;
         }
 
-        private void GetProductFromOracle(ref string[] aryProducts)
-        {
-            // Get the 7 products that are in MSAT_SENTRY_DEFINE and add to aryProducts
-            // Full list seems too long?
-            LinkedList<string> llProducts = new LinkedList<string>();
-            DataTable dtSentryProduct = OracleSQL.DataTableQuery("DATATOOLS", "select unique CCDB_NAME, PROCESS_ALIAS from MSAT_SENTRY_DEFINE_VW");
-            DataRow[] drSentryProducts = dtSentryProduct.Select();
-            foreach (DataRow dr in drSentryProducts)
-            {
-                // Add CCDB product name
-                llProducts.AddLast(dr["CCDB_NAME"].ToString().ToUpper());
+        //private void GetProductFromOracle(ref string[] aryProducts)
+        //{
+        //    // Get the 7 products that are in MSAT_SENTRY_DEFINE and add to aryProducts
+        //    // Full list seems too long?
+        //    LinkedList<string> llProducts = new LinkedList<string>();
+        //    DataTable dtSentryProduct = OracleSQL.DataTableQuery("DATATOOLS", "select unique CCDB_NAME, PROCESS_ALIAS from MSAT_SENTRY_DEFINE_VW");
+        //    DataRow[] drSentryProducts = dtSentryProduct.Select();
+        //    foreach (DataRow dr in drSentryProducts)
+        //    {
+        //        // Add CCDB product name
+        //        llProducts.AddLast(dr["CCDB_NAME"].ToString().ToUpper());
 
-                // Also add all the process aliases
-                string strAlias = dr["PROCESS_ALIAS"].ToString().ToUpper();
-                string[] aryAliases = strAlias.Split(',');
-                foreach (string alias in aryAliases)
-                {
-                    llProducts.AddLast(alias);
-                }
-            }
+        //        // Also add all the process aliases
+        //        string strAlias = dr["PROCESS_ALIAS"].ToString().ToUpper();
+        //        string[] aryAliases = strAlias.Split(',');
+        //        foreach (string alias in aryAliases)
+        //        {
+        //            llProducts.AddLast(alias);
+        //        }
+        //    }
 
-            // Resize because arrays are fixed size
-            int startingIndex = aryProducts.Length;
-            Array.Resize(ref aryProducts, aryProducts.Length + llProducts.Count);
+        //    // Resize because arrays are fixed size
+        //    int startingIndex = aryProducts.Length;
+        //    Array.Resize(ref aryProducts, aryProducts.Length + llProducts.Count);
 
-            // Append to the string array for products
-            llProducts.CopyTo(aryProducts, startingIndex);
-        }
+        //    // Append to the string array for products
+        //    llProducts.CopyTo(aryProducts, startingIndex);
+        //}
 
         public string GetLot(string SearchString)
         {
