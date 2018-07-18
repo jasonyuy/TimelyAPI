@@ -76,6 +76,12 @@ namespace TimelyAPI.Models
                 strEndTimeResult = OracleSQL.SimpleQuery("CCDB", strSQLEndTime);
             }
 
+            // In order for PADME Service Library to work
+            if (strParameter.ToUpper() == "TEMPERATURE") { strParameter = "TEMP"; }
+            if (strParameter.ToUpper() == "AIR") { strParameter = "AIR SPARGE"; }
+            if (strParameter.ToUpper() == "O2") { strParameter = "O2 SPARGE"; }
+            //TODO: stop hardcoding
+
             //Build the tag query and query IP21 for the tag, store result in strTagResult
             string strQueryTagName = "SELECT name from ip_analogdef where name like '%" + strEquipmentNumeric + "%' " + IP21.TagAliasDescription[strParameter.ToUpper()] + " order by name desc";
             strTagResult = IP21.GenericQuery("IP-FERM", strQueryTagName);
@@ -97,10 +103,12 @@ namespace TimelyAPI.Models
                         strSortOrder = " order by ts desc";
                         break;
                     case "MIN":
+                    case "MINIMUM":
                         strParameterField = "MIN(" + strParameterField + ")";
                         strSortOrder = null;
                         break;
                     case "MAX":
+                    case "MAXIMUM":
                         strParameterField = "MAX(" + strParameterField + ")";
                         strSortOrder = null;
                         break;

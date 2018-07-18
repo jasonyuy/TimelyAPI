@@ -29,6 +29,13 @@ namespace TimelyAPI.Models
             if (!string.IsNullOrEmpty(strStation)) { strJobContext = strStation; };
             if (!string.IsNullOrEmpty(strLot)) { strJobContext = strLot; };
 
+            switch (strJobParameter)
+            {
+                case "PHASES":
+                    strJobParameter = "PHASE";
+                    break;
+            }
+
             //Figure out what the current value is so that the job operation can be assigned, if no limit value is found, the user is asking for a state change
             if (!string.IsNullOrEmpty(strlimitvalue))
             {
@@ -147,7 +154,6 @@ namespace TimelyAPI.Models
         public static string LimitQuery(string strParameter, string strProduct, string strVesselClass, string strLimitType)
         {
             // Initialize variables
-            strLimitType += " LIMIT";
             string strResult = $"Sorry! I can't seem to find the {strLimitType} you requested, can you refine your request and try again?";
             string strUOM = null;
 

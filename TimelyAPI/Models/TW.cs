@@ -54,6 +54,7 @@ namespace TimelyAPI.Models
                     strParameterField = "TO_CLOSE";
                     break;
                 case "UPDATE":
+                case "UPDATED":
                     strParameterField = "CAST((FROM_TZ(CAST(UPDATED_UTC AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)";
                     strParameter = "updated";
                     break;
@@ -61,10 +62,12 @@ namespace TimelyAPI.Models
                     strParameterField = "CAST((FROM_TZ(CAST(CREATED_UTC AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)";
                     break;
                 case "OPEN":
+                case "OPENED":
                     strParameterField = "CAST((FROM_TZ(CAST(CREATED_UTC AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)";
                     strParameter = "opened";
                     break;
                 case "CLOSE":
+                case "CLOSED":
                     strParameterField = "CAST((FROM_TZ(CAST(CLOSED_UTC AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)";
                     strParameter = "closed";
                     break;
