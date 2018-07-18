@@ -57,6 +57,10 @@
     <Reference Include="PADMEServiceLibrary">
       <HintPath>..\..\PADMEServiceLibrary\PADMEServiceLibrary\bin\Debug\PADMEServiceLibrary.dll</HintPath>
     </Reference>
+    <Reference Include="Porter2Stemmer, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\lib\Porter2Stemmer.dll</HintPath>
+    </Reference>
     <Reference Include="RestSharp">
       <HintPath>..\packages\RestSharp.105.2.3\lib\net45\RestSharp.dll</HintPath>
     </Reference>
@@ -169,6 +173,7 @@
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
     <Compile Include="Models\CCDB.cs" />
+    <Compile Include="Models\ChatStatus.cs" />
     <Compile Include="Models\IPREC.cs" />
     <Compile Include="Models\TW.cs" />
     <Compile Include="Models\Sentry.cs" />
