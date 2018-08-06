@@ -38,8 +38,24 @@ namespace TimelyAPI.Models
             //Find the most likely batch that matches search criteria, if equipment modifer is filled
             if (string.IsNullOrEmpty(strEquipment) && string.IsNullOrEmpty(strStation))
             {
-                string strSQLEquipment = strSQLbase.Replace("<FIELD>", "ISI.CCBATCHES.FERMID") + strConstraints + strSQLSort;
-                strEqipmentResult = OracleSQL.SimpleQuery("CCDB", strSQLEquipment);
+                // Get scale ID to determine if it's seed train
+                if (string.IsNullOrEmpty(strScaleID))
+                {
+                    string strSQLScaleID = strSQLbase.Replace("<FIELD>", "ISI.CCBATCHES.SCALEID") + strConstraints + strSQLSort;
+                    strScaleID = OracleSQL.SimpleQuery("CCDB", strSQLScaleID);
+                }
+                
+                //Get station number for seed train, ferm id for others
+                if (strScaleID == "20")
+                {
+                    string strSQLStation = strSQLbase.Replace("<FIELD>", "ISI.CCBATCHES.STATION") + strConstraints + strSQLSort;
+                    strStation = OracleSQL.SimpleQuery("CCDB", strSQLStation);
+                }
+                else
+                {
+                    string strSQLEquipment = strSQLbase.Replace("<FIELD>", "ISI.CCBATCHES.FERMID") + strConstraints + strSQLSort;
+                    strEqipmentResult = OracleSQL.SimpleQuery("CCDB", strSQLEquipment);
+                }
             }
 
             //If there's a seed train station, assign it to the equipment variable

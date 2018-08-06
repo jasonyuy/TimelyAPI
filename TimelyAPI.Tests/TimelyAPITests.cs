@@ -267,6 +267,17 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
+        public void IPFERMTempValueSeedTrainTest()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("Temp for lot 3265507", "test", ref session);
+            //Assert
+            Assert.AreEqual("The current TEMP value for lot 3265507 is 37.166 deg C", strTestResult);
+        }
+
+        [TestMethod]
         public void IPFERMValueTest()
         {
             //Arrange
