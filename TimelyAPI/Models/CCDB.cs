@@ -180,7 +180,7 @@ namespace TimelyAPI.Models
             }
             
         }
-        public static string PredictGlucoseQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strModifier, double dblDuration, string strTimeFlag, string strlimitvalue)
+        public static string PredictGlucoseQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strModifier, double dblDuration, string strTimeFlag, string strlimitvalue, string strUserUnix)
         {
             //Glucose prediction, becuase TK, caclulation done in hours
             string strResult = "Sorry! I can't perform any glucose predictions with the given parameters, can you refine your request and try again?";
@@ -203,8 +203,7 @@ namespace TimelyAPI.Models
             string strConstraints = ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, null);
 
             //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
-            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
-                " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null order by INOCTIME desc");
+            string strBatchID = GetCCDBBatchID(strConstraints, strUserUnix);
 
             //If proper batch is found, make the calculation
             if (!string.IsNullOrEmpty(strBatchID))
@@ -273,7 +272,7 @@ namespace TimelyAPI.Models
             if (dblResult > -1) { strResult = Math.Round(dblResult, 2).ToString(); };
             return strResult;
         }
-        public static string PredictPCVQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, double dblDuration, string strTimeFlag, string strlimitvalue)
+        public static string PredictPCVQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, double dblDuration, string strTimeFlag, string strlimitvalue, string strUserUnix)
         {
             //PCV prediction, only really useful for N-3 thru N-1, maybe at the beginning of N as well
             string strResult = "Sorry! I can't perform any PCV predictions with the given parameters, can you refine your request and try again?";
@@ -291,8 +290,7 @@ namespace TimelyAPI.Models
             string strConstraints = ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, null);
 
             //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
-            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
-                " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null order by INOCTIME desc");
+            string strBatchID = GetCCDBBatchID(strConstraints, strUserUnix);
 
             if (!string.IsNullOrEmpty(strBatchID))
             {
@@ -413,6 +411,18 @@ namespace TimelyAPI.Models
         }
 
         //Support Calls
+        private static string GetCCDBBatchID(string strConstraints, string strUserUnix)
+        {
+            // SQL condition for getting a completed batch. (omit if running a unit test)
+            string strSQLCompletedBatch = (strUserUnix == "test") ? null : " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null";
+
+            //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
+            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
+                strSQLCompletedBatch + " order by INOCTIME desc");
+
+            return strBatchID;
+        }
+
         public static string ConcatConstraints(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strStation)
         {
             string strResult = null;

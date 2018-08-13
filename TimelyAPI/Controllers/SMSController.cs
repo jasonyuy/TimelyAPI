@@ -74,14 +74,15 @@ namespace TimelyAPI.Controllers
                     strResponse = "Hi " + clsUser.name + ". " + strResult;
                     if (clsUser.name != "Random Person")
                     {
-                        strRawMessage = strRawMessage.Replace("'", "''");
-                        strResponse = strResponse.Replace("'", "''");
+                        WriteToServiceLog(strRawMessage, strResponse, clsUser.id);
+                        //strRawMessage = strRawMessage.Replace("'", "''");
+                        //strResponse = strResponse.Replace("'", "''");
 
-                        //Write the output to the log
-                        OracleSQL.OracleWrite("DATATOOLS", "insert into MSAT_SERVICE_LOG (LOG_ID,APPLICATION,INPUT_TEXT,OUTPUT_TEXT,MESSAGE_TIME,USER_ID)" +
-                        " values (SQ_MSAT_SERVICE_LOG_ID.NextVal,'TimelyAPI','" + strRawMessage + "','" + strResponse + "',CURRENT_TIMESTAMP," + clsUser.id + ")");
+                        ////Write the output to the log
+                        //OracleSQL.OracleWrite("DATATOOLS", "insert into MSAT_SERVICE_LOG (LOG_ID,APPLICATION,INPUT_TEXT,OUTPUT_TEXT,MESSAGE_TIME,USER_ID)" +
+                        //" values (SQ_MSAT_SERVICE_LOG_ID.NextVal,'TimelyAPI','" + strRawMessage + "','" + strResponse + "',CURRENT_TIMESTAMP," + clsUser.id + ")");
 
-                        strResponse = strResponse.Replace("''", "'");
+                        //strResponse = strResponse.Replace("''", "'");
                     }
                 }
             }
@@ -96,6 +97,19 @@ namespace TimelyAPI.Controllers
             var strmessage = twiml.Message(strResponse);
             return TwiML(strmessage);
         }
+
+        private void WriteToServiceLog(string strInputText, string strOutputText, string strUserId)
+        {
+            strInputText = strInputText.Replace("'", "''");
+            strOutputText = strOutputText.Replace("'", "''");
+
+            //Write the output to the log
+            OracleSQL.OracleWrite("DATATOOLS", "insert into MSAT_SERVICE_LOG (LOG_ID,APPLICATION,INPUT_TEXT,OUTPUT_TEXT,MESSAGE_TIME,USER_ID)" +
+            " values (SQ_MSAT_SERVICE_LOG_ID.NextVal,'TimelyAPI','" + strInputText + "','" + strOutputText + "',CURRENT_TIMESTAMP," + strUserId + ")");
+
+            strOutputText = strOutputText.Replace("''", "'");
+        }
+
         //public string CannedResponseOriginal(string strRawMessage, string strUserName)
         //{
         //    string strResult = null;                    
@@ -348,6 +362,7 @@ namespace TimelyAPI.Controllers
                 || strRawMessage.Contains("MISTAKE") == true)
             {
                 strResult = "Thanks for the feedback " + strUserName + ". Your request has been flagged and Jason will take a look at it to help me understand it in the future";
+                WriteToServiceLog(strRawMessage, strResult, "22"); // need user id
             }
 
             //How Timely gets creepy
@@ -1021,10 +1036,13 @@ namespace TimelyAPI.Controllers
                         currItem = "";
                     }
                 }
-                else // user entered filler words or garbage
+                else 
                 {
+                    // Check if token is an entity
+                    ParseEntity(aryTokens[i].ToUpper(), aryTokens[i].ToUpper(), nextItem, dtEntity, ref Inputs);
+
+                    // user entered filler words or garbage
                     currItem = "";
-                    // optional: check if token is entity/alias?
                 }
             }
 
@@ -1185,12 +1203,12 @@ namespace TimelyAPI.Controllers
                 //Glucose Prediction
                 if (Inputs.CCDB_Sampleparameter.ToUpper() == "GLUCOSE" && Inputs.special.ToUpper() == "PREDICT")
                 {
-                    strResult = CCDB.PredictGlucoseQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.modifier, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue);
+                    strResult = CCDB.PredictGlucoseQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.modifier, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue, strUserUnix);
                 }
                 //PCV Prediction
                 if (Inputs.CCDB_Sampleparameter.ToUpper() == "PCV" && Inputs.special.ToUpper() == "PREDICT")
                 {
-                    strResult = CCDB.PredictPCVQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue);
+                    strResult = CCDB.PredictPCVQuery(Inputs.product, Inputs.vesselclass, Inputs.equipment, Inputs.run, Inputs.lot, Inputs.durationseconds, Inputs.timeflag, Inputs.limitvalue, strUserUnix);
                 }
                 //Viability Crash Detection
                 if (Inputs.CCDB_Sampleparameter.ToUpper() == "VIABILITY" && Inputs.special.ToUpper() == "CRASH")
@@ -1294,6 +1312,10 @@ namespace TimelyAPI.Controllers
                 if (!string.IsNullOrEmpty(nextItem))
                 {
                     if (strRaw == "LOT" && Regex.Match(nextItem, @"^[0-9_]+$").Success == true)
+                    {
+                        continue;
+                    }
+                    if (strRaw == "STATION" && Regex.Match(nextItem, @"^[0-9_]+$").Success == true)
                     {
                         continue;
                     }
