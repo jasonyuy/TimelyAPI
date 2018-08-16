@@ -9,6 +9,8 @@ namespace TimelyAPI.Tests
     [TestClass]
     public class TimelyAPITests
     {
+        #region Test CCDB
+
         [TestMethod]
         public void CCDBBatchQueryListTest()
         {
@@ -178,6 +180,12 @@ namespace TimelyAPI.Tests
             Console.WriteLine(strTestResult);
         }
 
+        #endregion
+        #region Test CCDB Predictions
+        /* 
+         * NOTE: Test glucose prediction calculations as if today was 7/20/2018 8:00:00 AM
+         * Actual glucose values: 3.05 g/L on 7/20/2018 6:07:00 AM, 1.09 g/L on 7/21/2018 12:21:00 AM
+         */
         [TestMethod]
         public void GlucosePredictionValueTest()
         {
@@ -199,11 +207,11 @@ namespace TimelyAPI.Tests
             //Act
             string strTestResult = test.ProcessMessage("Can you predict when the glucose value for lot 3262626 will reach 1.0 g/l?", "test", ref session);
             //Assert
-            DateTime n;
-            Assert.IsTrue(DateTime.TryParse(strTestResult, out n));
+            //DateTime n;
+            //Assert.IsTrue(DateTime.TryParse(strTestResult, out n));
+            Assert.AreEqual("According to my calculations, the glucose value for this batch will drop below 1.0 g/L on 7/20/2018 4:04:54 PM", strTestResult);
             Console.WriteLine(strTestResult);
         }
-
 
         [TestMethod]
         public void PCVPredictionTest()
@@ -241,6 +249,9 @@ namespace TimelyAPI.Tests
             Assert.AreEqual("No viability crash detected. Culture looks fine =)", strTestResult);
             Console.WriteLine(strTestResult);
         }
+
+        #endregion
+        #region Test IP21
 
         [TestMethod]
         public void IPFERMTempValueTest()
@@ -325,29 +336,8 @@ namespace TimelyAPI.Tests
             Console.WriteLine(strTestResult);
         }
 
-        [TestMethod]
-        public void SentryActionLimitTest()
-        {
-            //Arrange
-            Arrange();
-            //Act
-            string strTestResult = test.ProcessMessage("What's the lower action limit for online pH for anti-Myostatin 2kL?", "test", ref session);
-            //Assert
-            Assert.AreEqual("The lower action limit for ONLINE PH for ANTI-MYOSTATIN 2KL is pH 6.8", strTestResult);
-            Console.WriteLine(strTestResult);
-        }
-
-        [TestMethod]
-        public void SentryActionLimitWithAliasTest()
-        {
-            //Arrange
-            Arrange();
-            //Act
-            string strTestResult = test.ProcessMessage("What's the upper action limit for temperature for Pola 400L?", "test", ref session);
-            //Assert
-            Assert.AreEqual("The upper action limit for TEMPERATURE for POLA 400L is 38 Deg C", strTestResult);
-            Console.WriteLine(strTestResult);
-        }
+        #endregion
+        #region Test MES
 
         [TestMethod]
         public void MESMediaLotTest()
@@ -409,6 +399,9 @@ namespace TimelyAPI.Tests
             Console.WriteLine(strTestResult);
         }
 
+        #endregion
+        #region Test LIMS
+
         [TestMethod]
         public void LIMSGeneralQueryTest()
         {
@@ -430,6 +423,33 @@ namespace TimelyAPI.Tests
             string strTestResult = test.ProcessMessage("What's the preharv titer for Avastin run 160?", "test", ref session);
             //Assert
             Assert.AreEqual("The PHCCF titer for AVASTIN class 12KL run 160 is 1.005 mg/mL", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        #endregion
+        #region Test Sentry
+
+        [TestMethod]
+        public void SentryActionLimitTest()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("What's the lower action limit for online pH for anti-Myostatin 2kL?", "test", ref session);
+            //Assert
+            Assert.AreEqual("The lower action limit for ONLINE PH for ANTI-MYOSTATIN 2KL is pH 6.8", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void SentryActionLimitWithAliasTest()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("What's the upper action limit for temperature for Pola 400L?", "test", ref session);
+            //Assert
+            Assert.AreEqual("The upper action limit for TEMPERATURE for POLA 400L is 38 Deg C", strTestResult);
             Console.WriteLine(strTestResult);
         }
 
@@ -468,6 +488,9 @@ namespace TimelyAPI.Tests
             Assert.AreEqual("Alerts for ONLINE PH on T320 will be snoozed for the next 3 hours", strTestResult);
             Console.WriteLine(strTestResult);
         }
+
+        #endregion
+        #region Test Ambiguity and Sessions
 
         [TestMethod]
         public void AmbiguityPHTest()
@@ -524,42 +547,6 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
-        public void UnknownEquipmentTest()
-        {
-            //Arrange
-            Arrange();
-            //Act
-            string strTestResult = test.ProcessMessage("What is do2 in Avastin T123?", "test", ref session);
-            //Assert
-            Assert.AreEqual("I can't seem to find the equipment you've specified, try again with the following format: X### (i.e. T281)", strTestResult);
-            Console.WriteLine(strTestResult);
-        }
-
-        [TestMethod]
-        public void UnknownStationTest()
-        {
-            //Arrange
-            Arrange();
-            //Act
-            string strTestResult = test.ProcessMessage("What is do2 in Avastin 1234_56?", "test", ref session);
-            //Assert
-            Assert.AreEqual("I can't seem to find the station you've specified, try again with the following format: ####_## (i.e. 3410_08)", strTestResult);
-            Console.WriteLine(strTestResult);
-        }
-
-        [TestMethod]
-        public void MissingParameterTest()
-        {
-            //Arrange
-            Arrange();
-            //Act
-            string strTestResult = test.ProcessMessage("What's in T250?", "test", ref session);
-            //Assert
-            Assert.AreEqual("I can't seem to figure out what target parameter you're looking for. Can you try re-phrasing your request with a valid search parameter? (i.e. PCV, temperature, titer)", strTestResult);
-            Console.WriteLine(strTestResult);
-        }
-
-        [TestMethod]
         public void AmbiguityTiterTest()
         {
             //Arrange
@@ -596,6 +583,48 @@ namespace TimelyAPI.Tests
             Assert.AreEqual("I understand you're asking about upper action limit. However, I'm missing either the PRODUCT, VESSEL SIZE, or TARGET PARAMETER (i.e. Temperature) from the information you provided", strTestResult);
             Console.WriteLine(strTestResult);
         }
+
+        #endregion
+        #region Test Missing Identifier
+
+        [TestMethod]
+        public void UnknownEquipmentTest()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("What is do2 in Avastin T123?", "test", ref session);
+            //Assert
+            Assert.AreEqual("I can't seem to find the equipment you've specified, try again with the following format: X### (i.e. T281)", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void UnknownStationTest()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("What is do2 in Avastin 1234_56?", "test", ref session);
+            //Assert
+            Assert.AreEqual("I can't seem to find the station you've specified, try again with the following format: ####_## (i.e. 3410_08)", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
+        public void MissingParameterTest()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("What's in T250?", "test", ref session);
+            //Assert
+            Assert.AreEqual("I can't seem to figure out what target parameter you're looking for. Can you try re-phrasing your request with a valid search parameter? (i.e. PCV, temperature, titer)", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        #endregion
+        #region Test Other
 
         [TestMethod]
         public void VersionTest()
@@ -726,6 +755,9 @@ namespace TimelyAPI.Tests
             Assert.IsTrue(Regex.Match(actual2, @"\d+.\d+").Success);
         }
 
+        #endregion
+        #region Test Trackwise
+
         [TestMethod]
         public void TWRecordAssignedtoMe()
         {
@@ -820,6 +852,8 @@ namespace TimelyAPI.Tests
             Assert.AreEqual("The record 1402851 was DUE on 11/23/2017 12:00:00 AM", strTestResult);
             Console.WriteLine(strTestResult);
         }
+
+        #endregion
 
         //When is the next pH/Temp shift for run xxx
 
