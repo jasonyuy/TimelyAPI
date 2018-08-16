@@ -75,25 +75,43 @@ namespace TimelyAPI.Models
             }
             else
             {
-                if (strlimit == "ENABLE" || strlimit == "ACTIVATE" || strlimit == "TURN ON")
+                // Allow user to turn off phase change alerts
+                if (strlimit == "DISABLE" || strlimit == "DEACTIVATE" || strlimit == "TURN OFF")
                 {
-                    if (string.IsNullOrEmpty(strlimitvalue)) { strJobCriteria = strModifier; };
-                    //Create Job for Sentry
+                    //if (string.IsNullOrEmpty(strlimitvalue)) { strJobCriteria = strModifier; };
                     if (strUserUnix != "test")
                     {
-                        OracleSQL.OracleWrite("DATATOOLS", "insert into MSAT_SERVICE_JOBS (JOB_ID,APPLICATION,REQUEST_TIME,EXPIRATION_TIME, " +
+                        string strSQLDisablePhaseChange = "update MSAT_SERVICE_JOBS " +
+                            "set COMPLETION_TIME = CURRENT_TIMESTAMP, JOB_RESULT = 'Disabled by user' " +
+                            "where USER_ID=(select USER_ID from MSAT_TIMELY_USERS where UNIX='" + strUserUnix + "') " +
+                            "and JOB_OPERATION='STATE_CHANGE' " +
+                            "and JOB_CONTEXT='" + strJobContext + "'";
+                        OracleSQL.OracleWrite("DATATOOLS", strSQLDisablePhaseChange);
+                    }
+
+                    strResult = "Alerts disabled for " + strJobParameter + " on " + strJobContext;
+                }
+                // Allow user to assign themselves equipment and get phase change alerts
+                else if (strlimit == "ENABLE" || strlimit == "ACTIVATE" || strlimit == "TURN ON")
+                {
+                    //if (string.IsNullOrEmpty(strlimitvalue)) { strJobCriteria = strModifier; };
+                    // Note: no expiration time for phase change alerts
+                    if (strUserUnix != "test")
+                    {
+                        string strSQLPhaseChange = "insert into MSAT_SERVICE_JOBS (JOB_ID,APPLICATION,REQUEST_TIME, " +
                             "USER_ID,JOB_PARA_ID,JOB_CONTEXT,JOB_OPERATION,JOB_CRITERIA) values " +
-                            "(SQ_MSAT_SERVICE_JOB_ID.NextVal,'SentryService',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+20," +
+                            "(SQ_MSAT_SERVICE_JOB_ID.NextVal,'SentryService',CURRENT_TIMESTAMP," +
                             "(select USER_ID from MSAT_TIMELY_USERS where UNIX='" + strUserUnix + "')," +
                             "(select PARA_ID from MSAT_PARAMETERS where UPPER(PARA_NAME)='" + strJobParameter + "'),'" +
-                            strJobContext + "','STATE_CHANGE','" + strJobCriteria + "')");
+                            strJobContext + "','STATE_CHANGE','" + strJobCriteria + "')";
+                        OracleSQL.OracleWrite("DATATOOLS", strSQLPhaseChange);
                     }
 
                     strResult = "Sentry will notify you when " + strJobParameter + " on " + strJobContext + " is changed/updated. " +
-                        "This monitoring will be active for the next 20 days. To disable, reply with disable, deactivate, or turn off";
+                        "This monitoring will be active until you disable it. To disable, reply with disable, deactivate, or turn off";
                 }
             }
-            
+
 
             return strResult;
         }

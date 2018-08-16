@@ -478,6 +478,18 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
+        public void SentryDisableJobPhaseChange()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("Sentry, turn off alerts for X1360 phases", "test", ref session);
+            //Assert
+            Assert.AreEqual("Alerts disabled for PHASE on X1360", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
         public void SentrySnoozeAlert()
         {
             //Arrange
