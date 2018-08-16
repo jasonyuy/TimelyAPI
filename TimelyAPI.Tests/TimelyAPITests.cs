@@ -604,7 +604,7 @@ namespace TimelyAPI.Tests
             //Arrange
             Arrange();
             //Act
-            string strTestResult = test.CannedResponse("Hello Timely", "Jason", ref session);
+            string strTestResult = test.ProcessMessage("Temperature for lot 3265507", "Jason", ref session);
             //Assert
             //Assert.AreEqual("I can see that you're requesting dO2 data. However, can you try re-phrasing your request and specifying whether you'd like offline or online dO2?", strTestResult);
             //Assert.AreEqual("1", "1");

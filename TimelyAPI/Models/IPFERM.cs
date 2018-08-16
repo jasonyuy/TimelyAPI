@@ -38,7 +38,7 @@ namespace TimelyAPI.Models
             //Find the most likely batch that matches search criteria, if equipment modifer is filled
             if (string.IsNullOrEmpty(strEquipment) && string.IsNullOrEmpty(strStation))
             {
-                string strSQLEquipment = strSQLbase.Replace("<FIELD>", "ISI.CCBATCHES.FERMID") + strConstraints + strSQLSort;
+                string strSQLEquipment = strSQLbase.Replace("<FIELD>", "case when SCALEID=20 then ISI.CCBATCHES.STATION else ISI.CCBATCHES.FERMID end") + strConstraints + strSQLSort;
                 strEqipmentResult = OracleSQL.SimpleQuery("CCDB", strSQLEquipment);
             }
 

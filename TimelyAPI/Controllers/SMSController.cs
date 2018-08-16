@@ -1050,7 +1050,7 @@ namespace TimelyAPI.Controllers
             }
 
             //Find what's after the word product, run, lot, equipment and station, provided they're not the query parameters
-            if (string.IsNullOrEmpty(Inputs.product)) { Inputs.product = GetProduct(strRawMessage); }
+            //if (string.IsNullOrEmpty(Inputs.product)) { Inputs.product = GetProduct(strRawMessage); }
             Inputs.run = GetRun(strRawMessage);
             Inputs.lot = GetLot(strRawMessage);
             Inputs.equipment = GetEquipment(strRawMessage);
