@@ -187,6 +187,17 @@ namespace TimelyAPI.Models
             double dblResult = -1;
             string strConstraint = null;
             string strSort = " and DURATION>0";
+            string strTestDate = "SYSDATE";
+            string strBeforeTestDate = "";
+
+            // For Tests
+            if (strUserUnix == "test")
+            {
+                // To test glucose prediction as if today was that day
+                strTestDate = "TO_DATE('7/20/2018 8:00:00 AM', 'MM/DD/YYYY HH:MI:SS AM')";
+                strBeforeTestDate = " and SAMPLETIME < " + strTestDate;
+            }
+            
 
             //Sample Query
             //Durations in CCDB is measured in hours
@@ -210,7 +221,9 @@ namespace TimelyAPI.Models
             {
                 //Find the duration of the previous max glucose
                 string strSQLFinal = strSQLbase.Replace("<FIELD>", "DURATION from (select CNT, DURATION, GLUCOSE, ROUND(POWER((GLUCOSE - lag(GLUCOSE) over(order by CNT desc)) / GLUCOSE,2),2) MARK " +
-                    " from (select rownum CNT, DURATION, GLUCOSE") + " and ISI.CCBATCHES.BATCHID= " + strBatchID + " order by DURATION desc)) where MARK > 1 order by DURATION desc";
+                    " from (select rownum CNT, DURATION, GLUCOSE") + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strBeforeTestDate + " order by DURATION desc)) where MARK > 1 order by DURATION desc";
+                //string strSQLFinal = strSQLbase.Replace("<FIELD>", "DURATION from (select CNT, DURATION, GLUCOSE, ROUND(POWER((GLUCOSE - lag(GLUCOSE) over(order by CNT desc)) / GLUCOSE,2),2) MARK " +
+                //    " from (select rownum CNT, DURATION, GLUCOSE") + " and ISI.CCBATCHES.BATCHID= " + strBatchID + " order by DURATION desc)) where MARK > 1 order by DURATION desc";
                 string strMarkDuration = OracleSQL.SimpleQuery("CCDB", strSQLFinal);
                 if (!string.IsNullOrEmpty(strMarkDuration)) { strSort = " and DURATION>" + strMarkDuration; };
 
@@ -222,14 +235,14 @@ namespace TimelyAPI.Models
                 }
 
                 //Calculate the slope and intercept
-                string strSQLSlope = strSQLbase.Replace("<FIELD>", "ROUND(REGR_SLOPE(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort;
+                string strSQLSlope = strSQLbase.Replace("<FIELD>", "ROUND(REGR_SLOPE(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort + strBeforeTestDate;
                 string strSlope = OracleSQL.SimpleQuery("CCDB", strSQLSlope);
 
-                string strSQLIntercept = strSQLbase.Replace("<FIELD>", "ROUND(REGR_INTERCEPT(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort;
+                string strSQLIntercept = strSQLbase.Replace("<FIELD>", "ROUND(REGR_INTERCEPT(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort + strBeforeTestDate;
                 string strIntercept = OracleSQL.SimpleQuery("CCDB", strSQLIntercept);
 
                 //Get the current duration
-                string strSQLDuration = strSQLbase.Replace("<FIELD>", "distinct ROUND((SYSDATE-CAST((FROM_TZ(CAST(INOCTIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE))*24,9) VAL")
+                string strSQLDuration = strSQLbase.Replace("<FIELD>", "distinct ROUND((" + strTestDate + "-CAST((FROM_TZ(CAST(INOCTIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE))*24,9) VAL")
                     + " and ISI.CCBATCHES.BATCHID= " + strBatchID;
                 string strCurrentDuration = OracleSQL.SimpleQuery("CCDB", strSQLDuration);
 
@@ -248,6 +261,7 @@ namespace TimelyAPI.Models
                             string strTimeQuery = strSQLbase.Replace("<FIELD>", "CAST((FROM_TZ(CAST(INOCTIME + " + Convert.ToDouble(dblDuration) / 24 + " AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)")
                                 + " and ISI.CCBATCHES.BATCHID= " + strBatchID;
                             strResult = OracleSQL.SimpleQuery("CCDB", strTimeQuery);
+                            strResult = "According to my calculations, the glucose value for this batch will drop below " + strlimitvalue + " g/L on " + strResult;
                         }
                         else
                         {
