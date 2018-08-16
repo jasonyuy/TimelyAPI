@@ -155,3 +155,9 @@ $RECYCLE.BIN/
 
 # Mac desktop service store files
 .DS_Store
+.vs/*
+.vs/config/applicationhost.config
+.vs/TimelyAPI/DesignTimeBuild/.dtbcache
+.vs/TimelyAPI/v15/Server/sqlite3/storage.ide
+.vs/TimelyAPI/v15/Server/sqlite3/storage.ide-shm
+.vs/TimelyAPI/v15/Server/sqlite3/storage.ide-wal

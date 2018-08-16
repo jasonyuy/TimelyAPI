@@ -180,13 +180,24 @@ namespace TimelyAPI.Models
             }
             
         }
-        public static string PredictGlucoseQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strModifier, double dblDuration, string strTimeFlag, string strlimitvalue)
+        public static string PredictGlucoseQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strModifier, double dblDuration, string strTimeFlag, string strlimitvalue, string strUserUnix)
         {
             //Glucose prediction, becuase TK, caclulation done in hours
             string strResult = "Sorry! I can't perform any glucose predictions with the given parameters, can you refine your request and try again?";
             double dblResult = -1;
             string strConstraint = null;
             string strSort = " and DURATION>0";
+            string strTestDate = "SYSDATE";
+            string strBeforeTestDate = "";
+
+            // For Tests
+            if (strUserUnix == "test")
+            {
+                // To test glucose prediction as if today was that day
+                strTestDate = "TO_DATE('7/20/2018 8:00:00 AM', 'MM/DD/YYYY HH:MI:SS AM')";
+                strBeforeTestDate = " and SAMPLETIME < " + strTestDate;
+            }
+            
 
             //Sample Query
             //Durations in CCDB is measured in hours
@@ -203,15 +214,16 @@ namespace TimelyAPI.Models
             string strConstraints = ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, null);
 
             //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
-            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
-                " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null order by INOCTIME desc");
+            string strBatchID = GetCCDBBatchID(strConstraints, strUserUnix);
 
             //If proper batch is found, make the calculation
             if (!string.IsNullOrEmpty(strBatchID))
             {
                 //Find the duration of the previous max glucose
                 string strSQLFinal = strSQLbase.Replace("<FIELD>", "DURATION from (select CNT, DURATION, GLUCOSE, ROUND(POWER((GLUCOSE - lag(GLUCOSE) over(order by CNT desc)) / GLUCOSE,2),2) MARK " +
-                    " from (select rownum CNT, DURATION, GLUCOSE") + " and ISI.CCBATCHES.BATCHID= " + strBatchID + " order by DURATION desc)) where MARK > 1 order by DURATION desc";
+                    " from (select rownum CNT, DURATION, GLUCOSE") + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strBeforeTestDate + " order by DURATION desc)) where MARK > 1 order by DURATION desc";
+                //string strSQLFinal = strSQLbase.Replace("<FIELD>", "DURATION from (select CNT, DURATION, GLUCOSE, ROUND(POWER((GLUCOSE - lag(GLUCOSE) over(order by CNT desc)) / GLUCOSE,2),2) MARK " +
+                //    " from (select rownum CNT, DURATION, GLUCOSE") + " and ISI.CCBATCHES.BATCHID= " + strBatchID + " order by DURATION desc)) where MARK > 1 order by DURATION desc";
                 string strMarkDuration = OracleSQL.SimpleQuery("CCDB", strSQLFinal);
                 if (!string.IsNullOrEmpty(strMarkDuration)) { strSort = " and DURATION>" + strMarkDuration; };
 
@@ -223,14 +235,14 @@ namespace TimelyAPI.Models
                 }
 
                 //Calculate the slope and intercept
-                string strSQLSlope = strSQLbase.Replace("<FIELD>", "ROUND(REGR_SLOPE(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort;
+                string strSQLSlope = strSQLbase.Replace("<FIELD>", "ROUND(REGR_SLOPE(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort + strBeforeTestDate;
                 string strSlope = OracleSQL.SimpleQuery("CCDB", strSQLSlope);
 
-                string strSQLIntercept = strSQLbase.Replace("<FIELD>", "ROUND(REGR_INTERCEPT(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort;
+                string strSQLIntercept = strSQLbase.Replace("<FIELD>", "ROUND(REGR_INTERCEPT(GLUCOSE,DURATION),9)" + strConstraint) + " and ISI.CCBATCHES.BATCHID= " + strBatchID + strSort + strBeforeTestDate;
                 string strIntercept = OracleSQL.SimpleQuery("CCDB", strSQLIntercept);
 
                 //Get the current duration
-                string strSQLDuration = strSQLbase.Replace("<FIELD>", "distinct ROUND((SYSDATE-CAST((FROM_TZ(CAST(INOCTIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE))*24,9) VAL")
+                string strSQLDuration = strSQLbase.Replace("<FIELD>", "distinct ROUND((" + strTestDate + "-CAST((FROM_TZ(CAST(INOCTIME AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE))*24,9) VAL")
                     + " and ISI.CCBATCHES.BATCHID= " + strBatchID;
                 string strCurrentDuration = OracleSQL.SimpleQuery("CCDB", strSQLDuration);
 
@@ -249,6 +261,7 @@ namespace TimelyAPI.Models
                             string strTimeQuery = strSQLbase.Replace("<FIELD>", "CAST((FROM_TZ(CAST(INOCTIME + " + Convert.ToDouble(dblDuration) / 24 + " AS TIMESTAMP),'+00:00') AT TIME ZONE 'US/Pacific') AS DATE)")
                                 + " and ISI.CCBATCHES.BATCHID= " + strBatchID;
                             strResult = OracleSQL.SimpleQuery("CCDB", strTimeQuery);
+                            strResult = "According to my calculations, the glucose value for this batch will drop below " + strlimitvalue + " g/L on " + strResult;
                         }
                         else
                         {
@@ -273,7 +286,7 @@ namespace TimelyAPI.Models
             if (dblResult > -1) { strResult = Math.Round(dblResult, 2).ToString(); };
             return strResult;
         }
-        public static string PredictPCVQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, double dblDuration, string strTimeFlag, string strlimitvalue)
+        public static string PredictPCVQuery(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, double dblDuration, string strTimeFlag, string strlimitvalue, string strUserUnix)
         {
             //PCV prediction, only really useful for N-3 thru N-1, maybe at the beginning of N as well
             string strResult = "Sorry! I can't perform any PCV predictions with the given parameters, can you refine your request and try again?";
@@ -291,8 +304,7 @@ namespace TimelyAPI.Models
             string strConstraints = ConcatConstraints(strProduct, strVesselClass, strEquipment, strRun, strLot, null);
 
             //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
-            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
-                " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null order by INOCTIME desc");
+            string strBatchID = GetCCDBBatchID(strConstraints, strUserUnix);
 
             if (!string.IsNullOrEmpty(strBatchID))
             {
@@ -413,6 +425,18 @@ namespace TimelyAPI.Models
         }
 
         //Support Calls
+        private static string GetCCDBBatchID(string strConstraints, string strUserUnix)
+        {
+            // SQL condition for getting a completed batch. (omit if running a unit test)
+            string strSQLCompletedBatch = (strUserUnix == "test") ? null : " and INOCTIME > (SYSDATE - 30) and HARVESTTIME is null";
+
+            //Find the top most in-progress run that matches the search criteria, because predictions are only applicable for a single, non-completed run.
+            string strBatchID = OracleSQL.SimpleQuery("CCDB", "SELECT ISI.CCBATCHES.BATCHID FROM ISI.CCBATCHES where ISI.CCBATCHES.BATCHID is not null" + strConstraints +
+                strSQLCompletedBatch + " order by INOCTIME desc");
+
+            return strBatchID;
+        }
+
         public static string ConcatConstraints(string strProduct, string strVesselClass, string strEquipment, string strRun, string strLot, string strStation)
         {
             string strResult = null;
