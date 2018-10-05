@@ -1069,6 +1069,7 @@ namespace TimelyAPI.Controllers
 
             //Find what's after the word product, run, lot, equipment and station, provided they're not the query parameters
             //if (string.IsNullOrEmpty(Inputs.product)) { Inputs.product = GetProduct(strRawMessage); }
+            Inputs.GODWThemeID = GetTheme(strRawMessage);
             Inputs.run = GetRun(strRawMessage);
             Inputs.lot = GetLot(strRawMessage);
             Inputs.equipment = GetEquipment(strRawMessage);
@@ -1153,7 +1154,7 @@ namespace TimelyAPI.Controllers
 
             //Suggestion Chips
             if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.product) && string.IsNullOrEmpty(Inputs.lot) && string.IsNullOrEmpty(Inputs.vesselclass)
-                && string.IsNullOrEmpty(Inputs.run) && string.IsNullOrEmpty(Inputs.equipment) && string.IsNullOrEmpty(Inputs.station) && string.IsNullOrEmpty(Inputs.TWflag))
+                && string.IsNullOrEmpty(Inputs.run) && string.IsNullOrEmpty(Inputs.equipment) && string.IsNullOrEmpty(Inputs.station) && string.IsNullOrEmpty(Inputs.TWflag) && string.IsNullOrEmpty(Inputs.GODWparameter))
             {
                 chatStatus = ChatStatus.UnkBatch;
                 strMessageToStore = strRawMessage;
@@ -1188,7 +1189,7 @@ namespace TimelyAPI.Controllers
             }
             else if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
                 string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
-                string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(strResult))
+                string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(Inputs.GODWparameter) && string.IsNullOrEmpty(strResult))
             {
                 chatStatus = ChatStatus.SpecifyTarget;
                 strMessageToStore = strRawMessage;
@@ -1250,6 +1251,12 @@ namespace TimelyAPI.Controllers
             if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.TWflag) && !string.IsNullOrEmpty(Inputs.TWparameter))
             {
                 strResult = TW.TWQuery(strUserUnix, Inputs.TWflag, Inputs.TWparameter, Inputs.TWRecordID, Inputs.timeflag);
+            }
+
+            //GODW Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.GODWThemeID) && !string.IsNullOrEmpty(Inputs.GODWparameter))
+            {
+                strResult = GODW.GODWQuery(strUserUnix, Inputs.TWflag, Inputs.GODWparameter, Inputs.GODWThemeID);
             }
 
             //IP-REC Calls
@@ -1384,6 +1391,9 @@ namespace TimelyAPI.Controllers
                     case "SENTRY-DEFINE":
                         inputs.definition = strRaw;
                         break;
+                    case "GODW":
+                        inputs.GODWparameter = strRaw;
+                        break;
                 }
             }
 
@@ -1419,6 +1429,8 @@ namespace TimelyAPI.Controllers
             public string LIMSItemType { get; set; }
             public string LIMSTestCode { get; set; }
             public string TWRecordID { get; set; }
+            public string GODWparameter { get; set; }
+            public string GODWThemeID { get; set; }
             public string step { get; set; }
             public string definition { get; internal set; }
         }
@@ -1484,6 +1496,30 @@ namespace TimelyAPI.Controllers
         //    // Append to the string array for products
         //    llProducts.CopyTo(aryProducts, startingIndex);
         //}
+
+        public string GetTheme(string SearchString)
+        {
+            string strValue = null;
+            string strLot = null;
+            int n;
+
+            strLot = ValueExtractor(SearchString, "THEME");
+            if (!string.IsNullOrEmpty(strLot) && int.TryParse(strLot, out n) == true)
+            {
+                strValue = strLot.Trim();
+            }
+            else
+            {
+                string LotPattern = @"([0-9]{4,5}|w\d{5})"; //Regex Pattern for theme
+                Match MatchLot = Regex.Match(SearchString, LotPattern);
+                if (MatchLot.Success)
+                {
+                    strValue = SearchString.Substring(MatchLot.Index, MatchLot.Length).Trim();
+                }
+            }
+
+            return strValue;
+        }
 
         public string GetLot(string SearchString)
         {

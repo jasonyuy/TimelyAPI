@@ -866,7 +866,21 @@ namespace TimelyAPI.Tests
         }
 
         #endregion
+        #region Test GODW
 
+        [TestMethod]
+        public void GODWThemeIDLookup()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("What project is associated with theme 70094?", "yucheng", ref session);
+            //Assert
+            Assert.AreEqual("The project associated with theme 70094 is tiragolumab solid tumors", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        #endregion
         //When is the next pH/Temp shift for run xxx
 
         private Dictionary<string, Object> session;
