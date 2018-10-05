@@ -41,7 +41,14 @@ namespace TimelyAPI.Models
 
             string strSQLFinal = strSQLbase.Replace("<FIELD>", strParameterField) + strSQLThemeID ;
             strResult = OracleSQL.SimpleQuery("GODW", strSQLFinal);
-            strPrettyPrint = "The project associated with theme " + strThemeID + " is " + strResult;
+            if (!string.IsNullOrEmpty(strResult))
+            {
+                strPrettyPrint = "The project associated with theme " + strThemeID + " is " + strResult;
+            }
+            else
+            {
+                strPrettyPrint = "There doesn't seem to be a project associated with theme " + strThemeID + ". Please a different theme";
+            }
 
             return strPrettyPrint.Trim();
         }
