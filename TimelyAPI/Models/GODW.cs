@@ -47,7 +47,7 @@ namespace TimelyAPI.Models
             }
             else
             {
-                strPrettyPrint = "There doesn't seem to be a project associated with theme " + strThemeID + ". Please a different theme";
+                strPrettyPrint = "There doesn't seem to be a project associated with theme " + strThemeID + ". Please try a different theme";
             }
 
             return strPrettyPrint.Trim();

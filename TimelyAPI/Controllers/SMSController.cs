@@ -60,7 +60,7 @@ namespace TimelyAPI.Controllers
             if (string.IsNullOrEmpty(strResult)) { strResponse = CannedResponse(strRawMessage, clsUser.name, ref sessionVars); }
 
             //Generate the response string
-            if (string.IsNullOrEmpty(strResponse))
+            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(strResponse))
             {
                 //Process the message
                 //strResult = ProcessMessage(strRawMessage, clsUser.unix);
