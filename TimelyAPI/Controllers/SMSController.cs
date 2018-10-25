@@ -87,6 +87,11 @@ namespace TimelyAPI.Controllers
                 }
             }
 
+            if (string.IsNullOrEmpty(strResponse) && !string.IsNullOrEmpty(strResult))
+            {
+                strResponse = strResult;
+            }
+            
             //Save session states
             Session["chatStatus"] = sessionVars["chatStatus"];
             Session["jokeID"] = sessionVars["jokeID"];
