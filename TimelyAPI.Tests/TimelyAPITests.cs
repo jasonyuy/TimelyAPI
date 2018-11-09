@@ -214,6 +214,18 @@ namespace TimelyAPI.Tests
         }
 
         [TestMethod]
+        public void PACFreezerTempTest()
+        {
+            //Arrange
+            Arrange();
+            //Act
+            string strTestResult = test.ProcessMessage("What is the current temperature of R7736 freezer?", "test", ref session);
+            //Assert
+            Assert.AreEqual("The current TEMPERATURE value for R7736 FREEZER is -19.24 Deg C", strTestResult);
+            Console.WriteLine(strTestResult);
+        }
+
+        [TestMethod]
         public void PCVPredictionTest()
         {
             //Arrange

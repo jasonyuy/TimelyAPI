@@ -1051,16 +1051,10 @@ namespace TimelyAPI.Controllers
                 }
             }
 
-            //Define the different lookup arrays
-
-
             //Verification Arrays
             string[] EquipmentVerify = { "T271", "T280", "T270", "T281", "T320", "T310", "T240", "T241", "T251", "T250", "T221", "T231", "T232", "T222", "T212", "T201", "T211", "T202", "T1219", "T1220", "T1218", "T1217", "T1215", "T1213", "T7350",
                 "X1312", "X1360", "X1362", "X1363", "X1449", "X1454", "X1455", "X1473", "X1474", "X7707", "X7710", "X7711", "X7715" };
             string[] StationVerify = { "3410_01", "3410_02", "3410_03", "3410_04", "3410_05", "3410_06", "3410_07", "3410_08", "3810_01", "3810_02", "3810_03", "3810_04", "3810_05", "3810_06", "3810_07", "3810_08", "3810_09", "3810_10", "3810_11", "3810_12" };
-
-            //Keyword search inside string
-
 
             //If multiple parameters are detected, reconcile
             if (!string.IsNullOrEmpty(Inputs.IPFERMparameter) && !string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter))
@@ -1079,6 +1073,7 @@ namespace TimelyAPI.Controllers
             Inputs.lot = GetLot(strRawMessage);
             Inputs.equipment = GetEquipment(strRawMessage);
             Inputs.station = GetStation(strRawMessage);
+            Inputs.room = GetRoom(strRawMessage);
 
             //Verify input parameters if possible
             if (!string.IsNullOrEmpty(Inputs.equipment))
@@ -1158,7 +1153,7 @@ namespace TimelyAPI.Controllers
             }
 
             //Suggestion Chips
-            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.product) && string.IsNullOrEmpty(Inputs.lot) && string.IsNullOrEmpty(Inputs.vesselclass)
+            if (string.IsNullOrEmpty(strResult) && string.IsNullOrEmpty(Inputs.product) && string.IsNullOrEmpty(Inputs.lot) && string.IsNullOrEmpty(Inputs.room) && string.IsNullOrEmpty(Inputs.vesselclass)
                 && string.IsNullOrEmpty(Inputs.run) && string.IsNullOrEmpty(Inputs.equipment) && string.IsNullOrEmpty(Inputs.station) && string.IsNullOrEmpty(Inputs.TWflag) && string.IsNullOrEmpty(Inputs.GODWparameter))
             {
                 chatStatus = ChatStatus.UnkBatch;
@@ -1192,8 +1187,8 @@ namespace TimelyAPI.Controllers
                 strMessageToStore = strRawMessage;
                 strResult = $"I understand you're asking about {Inputs.definition.ToLower()}. However, I'm missing either the PRODUCT, VESSEL SIZE, or TARGET PARAMETER (i.e. Temperature) from the information you provided";
             }
-            else if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) &&
-                string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
+            else if (string.IsNullOrEmpty(Inputs.CCDB_Batchparameter) && string.IsNullOrEmpty(Inputs.CCDB_Sampleparameter) && string.IsNullOrEmpty(Inputs.MESparameter) &&
+                string.IsNullOrEmpty(Inputs.IPFERMparameter) && string.IsNullOrEmpty(Inputs.IPRECparameter) && string.IsNullOrEmpty(Inputs.IPUTILparameter) &&
                 string.IsNullOrEmpty(Inputs.LIMSparameter) && string.IsNullOrEmpty(Inputs.TWparameter) && string.IsNullOrEmpty(Inputs.GODWparameter) && string.IsNullOrEmpty(strResult))
             {
                 chatStatus = ChatStatus.SpecifyTarget;
@@ -1262,6 +1257,12 @@ namespace TimelyAPI.Controllers
             if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.GODWThemeID) && !string.IsNullOrEmpty(Inputs.GODWparameter))
             {
                 strResult = GODW.GODWQuery(strUserUnix, Inputs.TWflag, Inputs.GODWparameter, Inputs.GODWThemeID);
+            }
+
+            //IP-UTIL Calls
+            if (string.IsNullOrEmpty(strResult) && !string.IsNullOrEmpty(Inputs.IPUTILparameter) && !string.IsNullOrEmpty(Inputs.room))
+            {
+                strResult = IPUTIL.UtilityQuery(Inputs.IPUTILparameter, Inputs.utility, Inputs.room, Inputs.modifier, Inputs.durationseconds);
             }
 
             //IP-REC Calls
@@ -1351,6 +1352,9 @@ namespace TimelyAPI.Controllers
                     case "IP21-REC":
                         inputs.IPRECparameter = strRaw;
                         break;
+                    case "IP21-UTIL":
+                        inputs.IPUTILparameter = strRaw;
+                        break;
                     case "MES-TRIGGER":
                         inputs.MESflag = strRaw;
                         break;
@@ -1374,6 +1378,9 @@ namespace TimelyAPI.Controllers
                         break;
                     case "EQUIPMENT":
                         inputs.equipment = strRaw;
+                        break;
+                    case "UTILITY":
+                        inputs.utility = strRaw;
                         break;
                     case "MODIFIER":
                         inputs.modifier = strRaw;
@@ -1412,6 +1419,7 @@ namespace TimelyAPI.Controllers
             public string CCDB_Sampleparameter { get; set; }
             public string IPFERMparameter { get; set; }
             public string IPRECparameter { get; set; }
+            public string IPUTILparameter { get; set; }
             public string MESflag { get; set; }
             public string MESparameter { get; set; }
             public string LIMSparameter { get; set; }
@@ -1423,6 +1431,8 @@ namespace TimelyAPI.Controllers
             public string station { get; set; }
             public string run { get; set; }
             public string lot { get; set; }
+            public string room { get; set; }
+            public string utility { get; set; }
             public string modifier { get; set; }
             public string special { get; set; }
             public string limit { get; set; }
@@ -1505,21 +1515,21 @@ namespace TimelyAPI.Controllers
         public string GetTheme(string SearchString)
         {
             string strValue = null;
-            string strLot = null;
+            string strTheme = null;
             int n;
 
-            strLot = ValueExtractor(SearchString, "THEME");
-            if (!string.IsNullOrEmpty(strLot) && int.TryParse(strLot, out n) == true)
+            strTheme = ValueExtractor(SearchString, "THEME");
+            if (!string.IsNullOrEmpty(strTheme) && int.TryParse(strTheme, out n) == true)
             {
-                strValue = strLot.Trim();
+                strValue = strTheme.Trim();
             }
             else
             {
-                string LotPattern = @"([0-9]{4,5}|w\d{5})"; //Regex Pattern for theme
-                Match MatchLot = Regex.Match(SearchString, LotPattern);
-                if (MatchLot.Success)
+                string ThemePattern = @"([0-9]{4,5}|w\d{5})"; //Regex Pattern for theme
+                Match MatchTheme = Regex.Match(SearchString, ThemePattern);
+                if (MatchTheme.Success)
                 {
-                    strValue = SearchString.Substring(MatchLot.Index, MatchLot.Length).Trim();
+                    strValue = SearchString.Substring(MatchTheme.Index, MatchTheme.Length).Trim();
                 }
             }
 
@@ -1619,6 +1629,31 @@ namespace TimelyAPI.Controllers
                 if (MatchEquipment.Success)
                 {
                     strValue = SearchString.Substring(MatchEquipment.Index, MatchEquipment.Length).ToUpper().Trim();
+                }
+            }
+
+            return strValue;
+        }
+        public string GetRoom(string SearchString)
+        {
+            string strValue = null;
+
+            //Remove dashes
+            SearchString = SearchString.Replace("-", "");
+
+            string strRoom = null;
+            strRoom = ValueExtractor(SearchString, "ROOM");
+            if (!string.IsNullOrEmpty(strRoom))
+            {
+                strValue = strRoom.Trim();
+            }
+            else
+            {
+                string RoomPattern = @"([rR])\d{4,5}"; //Regex Pattern for equipment R7738, R98034 etc
+                Match MatchRoom = Regex.Match(SearchString, RoomPattern);
+                if (MatchRoom.Success)
+                {
+                    strValue = SearchString.Substring(MatchRoom.Index, MatchRoom.Length).ToUpper().Trim();
                 }
             }
 
